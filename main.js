@@ -753,7 +753,7 @@ function deferredInit() {
     $('#ManajemenKoin').on('click', function(e){
       e.preventDefault();
       // Hide all other views to avoid stacking with manager UI
-      $('#scanner-config, #filter-card, #sinyal-container, #header-table').hide();
+      $('#scanner-config,  #sinyal-container, #header-table').hide();
       $('#dataTableBody').closest('.uk-overflow-auto').hide();
       $('#iframe-container').hide();
       $('#form-setting-app').hide();
@@ -1161,8 +1161,14 @@ function deferredInit() {
             const remoteTokens = await $.getJSON(chainConfig.DATAJSON);
             const savedTokens = getTokensChain(activeSingleChainKey);
 
-            // Store raw tokens on modal for re-render on filters
-            const raw = Array.isArray(remoteTokens.token) ? remoteTokens.token : [];
+            // Accept both formats:
+            // - Array of token objects
+            // - Object with { token: [...] }
+            let raw = [];
+            if (Array.isArray(remoteTokens)) raw = remoteTokens;
+            else if (remoteTokens && Array.isArray(remoteTokens.token)) raw = remoteTokens.token;
+            else raw = [];
+
             raw.forEach((t,i) => { try { t._idx = i; } catch(_){} });
             $('#sync-modal').data('remote-raw', raw);
             $('#sync-modal').data('saved-tokens', savedTokens);
@@ -1231,9 +1237,23 @@ function deferredInit() {
             const desOutRaw = Number(tok.des_out || tok.decimals_out || 0);
 
             // Map pair to config; if unknown → NON
+            // NON concept: any pair NOT explicitly listed in PAIRDEXS.
+            // For NON we should keep sc_out from source if provided; only fallback to PAIRDEXS['NON'] when input is missing/invalid.
             const pairDef = pairDefs[symbolOut] || pairDefs['NON'] || { scAddressPair: '0x', desPair: 18, symbolPair: 'NON' };
-            const scOut = pairDefs[symbolOut] ? (tok.sc_out || pairDef.scAddressPair) : pairDef.scAddressPair;
-            const desOut = pairDefs[symbolOut] ? (desOutRaw || Number(pairDef.desPair)) : Number(pairDef.desPair);
+            const isAddrInvalid = (addr) => !addr || String(addr).toLowerCase() === '0x' || String(addr).length < 6;
+            let scOut = tok.sc_out || tok.contract_out || '';
+            let desOut = desOutRaw || Number(pairDef.desPair);
+            if (pairDefs[symbolOut]) {
+                // Known pair in config: allow fallback to config default if source empty
+                scOut = scOut || pairDef.scAddressPair;
+                desOut = desOutRaw || Number(pairDef.desPair);
+            } else {
+                // NON: keep source SC if present; only fallback when invalid
+                if (isAddrInvalid(scOut)) {
+                    scOut = pairDef.scAddressPair || scOut;
+                    desOut = Number(pairDef.desPair || desOutRaw || 18);
+                }
+            }
 
             // Use global DEX config
             const selectedDexs = selectedDexsGlobal.slice();

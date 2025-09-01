@@ -53,7 +53,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     setAppState({ run: 'YES' });
     $('#startSCAN').prop('disabled', true).text('Running...').addClass('uk-button-disabled');
     // Keep user's search query intact; do not reset searchInput here.
-    $('#sinyal-container span[id^="sinyal"]').empty();
+    // Clear previous signals (container uses <div id="sinyal...">)
+    $('#sinyal-container [id^="sinyal"]').empty();
     form_off();
     $("#autoScrollCheckbox").show().prop('disabled', false);
     $("#stopSCAN").show().prop('disabled', false);
@@ -142,6 +143,23 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
                                 const baseId = `${token.cex.toUpperCase()}_${dex.toUpperCase()}_${isKiri ? token.symbol_in : token.symbol_out}_${isKiri ? token.symbol_out : token.symbol_in}_${token.chain.toUpperCase()}`;
                                 const idCELL = tableBodyId + '_' + baseId;
+
+                                // Resolve safe token addresses/decimals especially for NON pair
+                                const chainCfgSafe = (window.CONFIG_CHAINS || {})[String(token.chain).toLowerCase()] || {};
+                                const pairDefsSafe = chainCfgSafe.PAIRDEXS || {};
+                                const nonDef = pairDefsSafe['NON'] || {};
+                                const isAddrInvalid = (addr) => !addr || String(addr).toLowerCase() === '0x' || String(addr).length < 6;
+                                let scInSafe  = isKiri ? token.sc_in  : token.sc_out;
+                                let scOutSafe = isKiri ? token.sc_out : token.sc_in;
+                                let desInSafe  = isKiri ? Number(token.des_in)  : Number(token.des_out);
+                                let desOutSafe = isKiri ? Number(token.des_out) : Number(token.des_in);
+                                const symOut = isKiri ? String(token.symbol_out||'') : String(token.symbol_in||'');
+                                if (String(symOut).toUpperCase() === 'NON' || isAddrInvalid(scOutSafe)) {
+                                    if (nonDef && nonDef.scAddressPair) {
+                                        scOutSafe = nonDef.scAddressPair;
+                                        desOutSafe = Number(nonDef.desPair || desOutSafe || 18);
+                                    }
+                                }
 
                                 const updateDexCellStatus = (status, dexName, message = '') => {
                                     const cell = document.getElementById(idCELL);
@@ -262,8 +280,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
                                 setTimeout(() => {
                                     getPriceDEX(
-                                        isKiri ? token.sc_in : token.sc_out, isKiri ? token.des_in : token.des_out,
-                                        isKiri ? token.sc_out : token.sc_in, isKiri ? token.des_out : token.des_in,
+                                        scInSafe, desInSafe,
+                                        scOutSafe, desOutSafe,
                                         isKiri ? amount_in_token : amount_in_pair, DataCEX.priceBuyPair, dex,
                                         isKiri ? token.symbol_in : token.symbol_out, isKiri ? token.symbol_out : token.symbol_in,
                                         token.cex, token.chain, CONFIG_CHAINS[token.chain.toLowerCase()].Kode_Chain, direction, tableBodyId
@@ -335,6 +353,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         }
 
         updateProgress(tokensToProcess.length, tokensToProcess.length, startTime, 'SELESAI');
+        // Clear signals after finishing to avoid stacking on next scan
+        try { $('#sinyal-container [id^="sinyal"]').empty(); } catch(_) {}
         isScanRunning = false;
         cancelAnimationFrame(animationFrameId);
         form_on();

@@ -207,7 +207,8 @@ function renderTokenManagementList() {
         const pairStatsHtml = Object.entries(countByPair).map(([pair, count]) => (
             `<span class="uk-text-bolder" style="margin:2px;">${pair}</span> <span class="uk-text-dark uk-text-bolder"> [${count}]</span> `
         )).join(' ') || '-';
-        statsHtml = `<b class="uk-text-primary uk-text-bolder">STATISTIK KOIN</b>: ${cexStatsHtml} | ${pairStatsHtml}`;
+       // statsHtml = `<b class="uk-text-primary uk-text-bolder">STATISTIK KOIN</b>: ${cexStatsHtml} | ${pairStatsHtml}`;
+        statsHtml = `<b class="uk-text-primary uk-text-bolder">MANAJEMEN KOIN CHAIN ${chainKey.toUpperCase()}</b>`;
     } else { // multi-chain mode
         const countByChain = activeTokensForStats.reduce((acc, t) => { const k = String(t.chain || '').toLowerCase(); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
         const countByCex = activeTokensForStats.reduce((acc, t) => { (t.selectedCexs || []).forEach(cx => { const u = String(cx).toUpperCase(); acc[u] = (acc[u] || 0) + 1; }); return acc; }, {});
@@ -220,7 +221,8 @@ function renderTokenManagementList() {
             const col = CONFIG_CEX?.[cex]?.WARNA || '#444';
             return `<span style="color:${col}; margin:2px; font-weight:bolder;">${cex}</span> <span class="uk-text-dark uk-text-bolder"> [${count}]</span> `;
         }).join(' ') || '-';
-        statsHtml = `<b class="uk-text-primary uk-text-bolder">STATISTIK KOIN</b>: ${chainStatsHtml} | ${cexStatsHtml}`;
+        statsHtml = `<b class="uk-text-primary uk-text-bolder">MANAJEMEN KOIN (MULTICHAIN)</b>`;
+       // statsHtml = `<b class="uk-text-primary uk-text-bolder">STATISTIK KOIN</b>: ${chainStatsHtml} | ${cexStatsHtml}`;
     }
 
     const currentQ = ($('#mgrSearchInput').length ? ($('#mgrSearchInput').val() || '') : ($('#searchInput').length ? ($('#searchInput').val() || '') : ''));
@@ -287,15 +289,34 @@ function renderTokenManagementList() {
             return `<span class="dex-chip"><b>${k.toUpperCase()}</b> [<span class="dex-mini">${l}</span>~<span class="dex-mini">${rgt}</span>]</span>`;
         }).join(' ');
 
+        // Resolve display SC for NON/placeholder '0x'
+        let scInDisp = r.sc_in || '';
+        let desInDisp = r.des_in ?? '';
+        let scOutDisp = r.sc_out || '';
+        let desOutDisp = r.des_out ?? '';
+        try {
+            const chainCfg = (window.CONFIG_CHAINS || {})[String(r.chain).toLowerCase()] || {};
+            const pairDefs = chainCfg.PAIRDEXS || {};
+            const isInvalid = (addr) => !addr || String(addr).toLowerCase() === '0x' || String(addr).length < 6;
+            const pairKey = String(r.symbol_out || '').toUpperCase();
+            if (isInvalid(scOutDisp)) {
+                const def = pairDefs[pairKey] || pairDefs['NON'] || {};
+                if (def && def.scAddressPair) {
+                    scOutDisp = def.scAddressPair;
+                    desOutDisp = def.desPair ?? desOutDisp;
+                }
+            }
+        } catch(_) {}
+
         const rowHtml = `
         <tr>
           <td class="uk-text-center">${r.no}</td>
           <td>
             <div><span class="uk-text-bold uk-text-success">${(r.symbol_in || '-').toUpperCase()}</span>
-              <span class="addr">${r.sc_in || ''} [${r.des_in ?? ''}]</span>
+              <span class="addr">${scInDisp} [${desInDisp}]</span>
             </div>
             <div><span class="uk-text-bold uk-text-danger">${(r.symbol_out || '-').toUpperCase()}</span>
-              <span class="addr">${r.sc_out || ''} [${r.des_out ?? ''}]</span>
+              <span class="addr">${scOutDisp} [${desOutDisp}]</span>
             </div>
           </td>
           <td>

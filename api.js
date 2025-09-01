@@ -200,9 +200,9 @@ function getPriceCEX(coins, NameToken, NamePair, cex, tableBodyId) {
 const dexStrategies = {
     kyberswap: {
         buildRequest: ({ chainName, sc_input, sc_output, amount_in_big }) => {
-            const netChain = chainName.toUpperCase() === "AVAX" ? "avalanche" : chainName;
-            const kyberUrl = `https://aggregator-api.kyberswap.com/${netChain.toLowerCase()}/api/v1/routes?tokenIn=${sc_input}&tokenOut=${sc_output}&amountIn=${amount_in_big}&gasInclude=true`;
-            return { url: `https://vercel-proxycors.vercel.app/?url=${encodeURIComponent(kyberUrl)}`, method: 'GET' };
+            const kyberUrl = `https://aggregator-api.kyberswap.com/${chainName.toLowerCase()}/api/v1/routes?tokenIn=${sc_input}&tokenOut=${sc_output}&amountIn=${amount_in_big}&gasInclude=true`;
+           // return { url: `https://vercel-proxycors.vercel.app/?url=${encodeURIComponent(kyberUrl)}`, method: 'GET' };
+             return { url: kyberUrl, method: 'GET' };
         },
         parseResponse: (response, { des_output, chainName }) => {
             if (!response?.data?.routeSummary) throw new Error("Invalid KyberSwap response structure");
