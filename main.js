@@ -83,20 +83,29 @@ function refreshTokensTable() {
         filteredByChain = [];
     }
 
-    filteredByChain = filteredByChain
-        .sort((a, b) => {
-            const A = (a.symbol_in || '').toUpperCase();
-            const B = (b.symbol_in || '').toUpperCase();
-            if (A < B) return -1;
-            if (A > B) return  1;
-            return 0;
-        });
+    // Apply multi-chain sort preference (persisted in FILTER_MULTICHAIN.sort)
+    try {
+        const rawFilter = getFromLocalStorage('FILTER_MULTICHAIN', null);
+        const sortPref = (rawFilter && (rawFilter.sort === 'A' || rawFilter.sort === 'Z')) ? rawFilter.sort : 'A';
+        filteredByChain = filteredByChain
+            .sort((a, b) => {
+                const A = (a.symbol_in || '').toUpperCase();
+                const B = (b.symbol_in || '').toUpperCase();
+                if (A < B) return sortPref === 'A' ? -1 : 1;
+                if (A > B) return sortPref === 'A' ?  1 : -1;
+                return 0;
+            });
+    } catch(_) {
+        filteredByChain = filteredByChain.sort((a,b)=> (a.symbol_in||'').localeCompare(b.symbol_in||'', undefined, { sensitivity: 'base' }));
+    }
 
     filteredTokens = [...filteredByChain];
     originalTokens = [...filteredByChain];
 
     try { updateTokenCount(filteredTokens); } catch(_) {}
     loadKointoTable(filteredTokens, 'dataTableBody');
+    try { window.currentListOrderMulti = Array.isArray(filteredTokens) ? [...filteredTokens] : []; } catch(_) {}
+    try { applySortToggleState(); } catch(_) {}
     attachEditButtonListeners(); // Re-attach listeners after table render
 }
 
@@ -134,7 +143,8 @@ function loadAndDisplaySingleChainTokens() {
             flatTokens = [];
         }
         // Apply sort preference
-        const sortPref = getFromLocalStorage(`SC_SORT_${activeSingleChainKey.toUpperCase()}`, 'A');
+        const rawSavedSort = getFromLocalStorage(`FILTER_${String(activeSingleChainKey).toUpperCase()}`, null);
+        const sortPref = (rawSavedSort && (rawSavedSort.sort === 'A' || rawSavedSort.sort === 'Z')) ? rawSavedSort.sort : 'A';
         flatTokens = flatTokens.sort((a,b) => {
             const A = (a.symbol_in||'').toUpperCase();
             const B = (b.symbol_in||'').toUpperCase();
@@ -144,7 +154,10 @@ function loadAndDisplaySingleChainTokens() {
         });
     } catch(e) { console.warn('single filter apply err', e); }
 
+    // Expose current list for search-aware scanning (keep sorted order)
+    try { window.singleChainTokensCurrent = Array.isArray(flatTokens) ? [...flatTokens] : []; } catch(_){}
     loadKointoTable(flatTokens, 'single-chain-table-body');
+    try { applySortToggleState(); } catch(_) {}
     attachEditButtonListeners(); // Re-attach listeners after table render
 }
 
@@ -512,6 +525,29 @@ function deferredInit() {
     }
 
     renderFilterCard();
+    // helper to reflect saved sort preference to A-Z / Z-A toggle
+    function applySortToggleState() {
+        try {
+            const mode = getAppMode();
+            let pref = 'A';
+            if (mode.type === 'single') {
+                const key = `FILTER_${String(mode.chain).toUpperCase()}`;
+                const obj = getFromLocalStorage(key, {}) || {};
+                if (obj && (obj.sort === 'A' || obj.sort === 'Z')) pref = obj.sort;
+            } else {
+                const obj = getFromLocalStorage('FILTER_MULTICHAIN', {}) || {};
+                if (obj && (obj.sort === 'A' || obj.sort === 'Z')) pref = obj.sort;
+            }
+            const want = (pref === 'A') ? 'opt_A' : 'opt_Z';
+            const $toggles = $('.sort-toggle');
+            $toggles.removeClass('active');
+            $toggles.find('input[type=radio]').prop('checked', false);
+            const $target = $toggles.filter(`[data-sort="${want}"]`);
+            $target.addClass('active');
+            $target.find('input[type=radio]').prop('checked', true);
+        } catch(_) {}
+    }
+    try { applySortToggleState(); } catch(_) {}
 
     // Auto-switch to single-chain view if URL indicates per-chain mode
     (function autoOpenSingleChainIfNeeded(){
@@ -563,16 +599,34 @@ function deferredInit() {
     $('.sort-toggle').off('click').on('click', function () {
         $('.sort-toggle').removeClass('active');
         $(this).addClass('active');
-        const sortValue = $(this).data('sort');
-        const sortedData = [...originalTokens].sort((a, b) => {
-            const A = (a.symbol_in || "").toUpperCase();
-            const B = (b.symbol_in || "").toUpperCase();
-            if (A < B) return sortValue === "opt_A" ? -1 : 1;
-            if (A > B) return sortValue === "opt_A" ?  1 : -1;
-            return 0;
-        });
-        window.filteredTokens = sortedData;
-        loadKointoTable(window.filteredTokens, 'dataTableBody');
+        const sortValue = $(this).data('sort'); // expects 'opt_A' or 'opt_Z'
+        const pref = (sortValue === 'opt_A') ? 'A' : 'Z';
+        try {
+            const mode = getAppMode();
+            if (mode.type === 'single') {
+                const key = `FILTER_${String(mode.chain).toUpperCase()}`;
+                const obj = getFromLocalStorage(key, {}) || {};
+                obj.sort = pref;
+                saveToLocalStorage(key, obj);
+                loadAndDisplaySingleChainTokens(); // will re-apply sorting and update window.singleChainTokensCurrent
+            } else {
+                const key = 'FILTER_MULTICHAIN';
+                const obj = getFromLocalStorage(key, {}) || {};
+                obj.sort = pref;
+                saveToLocalStorage(key, obj);
+                // Re-sort current multi data
+                const sortedData = [...originalTokens].sort((a, b) => {
+                    const A = (a.symbol_in || "").toUpperCase();
+                    const B = (b.symbol_in || "").toUpperCase();
+                    if (A < B) return pref === 'A' ? -1 : 1;
+                    if (A > B) return pref === 'A' ?  1 : -1;
+                    return 0;
+                });
+                window.filteredTokens = sortedData;
+                try { window.currentListOrderMulti = [...sortedData]; } catch(_) {}
+                loadKointoTable(window.filteredTokens, 'dataTableBody');
+            }
+        } catch(_) {}
     });
 
     $('#btn-save-setting').on('click', function() {
@@ -681,6 +735,33 @@ function deferredInit() {
         filterTable('dataTableBody');
         filterTable('single-chain-table-body');
 
+        // Build scan candidates based on search and current mode
+        try {
+            const mode = getAppMode();
+            const q = searchValue;
+            const pick = (t) => {
+                try {
+                    const chainKey = String(t.chain||'').toLowerCase();
+                    const chainName = (window.CONFIG_CHAINS?.[chainKey]?.Nama_Chain || '').toString().toLowerCase();
+                    const dexs = (t.dexs||[]).map(d => String(d.dex||'').toLowerCase()).join(' ');
+                    const addresses = [t.sc_in, t.sc_out].map(x => String(x||'').toLowerCase()).join(' ');
+                    return [t.symbol_in, t.symbol_out, t.cex, t.chain, chainName, dexs, addresses]
+                        .filter(Boolean)
+                        .map(s => String(s).toLowerCase())
+                        .join(' ');
+                } catch(_) { return ''; }
+            };
+            if (!q) {
+                window.scanCandidateTokens = null; // reset to default scanning
+            } else if (mode.type === 'single') {
+                const base = Array.isArray(window.singleChainTokensCurrent) ? window.singleChainTokensCurrent : [];
+                window.scanCandidateTokens = base.filter(t => pick(t).includes(q));
+            } else {
+                const base = Array.isArray(window.currentListOrderMulti) ? window.currentListOrderMulti : (Array.isArray(window.filteredTokens) ? window.filteredTokens : []);
+                window.scanCandidateTokens = base.filter(t => pick(t).includes(q));
+            }
+        } catch(_) {}
+
         // Re-render token management list to apply same query
         try { renderTokenManagementList(); } catch(_) {}
     }, 250));
@@ -769,6 +850,28 @@ function deferredInit() {
                 }
             } catch(_) {}
 
+            // Apply single-chain sort preference to scanning order (from FILTER_<CHAIN>.sort)
+            try {
+                const rawSavedSort = getFromLocalStorage(`FILTER_${String(chainKey).toUpperCase()}`, null);
+                const sortPref = (rawSavedSort && (rawSavedSort.sort === 'A' || rawSavedSort.sort === 'Z')) ? rawSavedSort.sort : 'A';
+                flatTokens = flatTokens.sort((a,b) => {
+                    const A = (a.symbol_in||'').toUpperCase();
+                    const B = (b.symbol_in||'').toUpperCase();
+                    if (A < B) return sortPref === 'A' ? -1 : 1;
+                    if (A > B) return sortPref === 'A' ?  1 : -1;
+                    return 0;
+                });
+            } catch(_) {}
+
+            // If user searched, limit scan to visible (search-filtered) tokens
+            try {
+                const q = ($('#searchInput').val() || '').trim();
+                if (q) {
+                    const cand = Array.isArray(window.scanCandidateTokens) ? window.scanCandidateTokens : [];
+                    flatTokens = cand;
+                }
+            } catch(_) {}
+
             if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
                 toastr.info('Tidak ada token pada filter per‑chain untuk dipindai.');
                 return;
@@ -777,12 +880,19 @@ function deferredInit() {
             return;
         }
 
-        // Multi‑chain uses the already filteredTokens (CHAIN ∩ CEX)
-        if (!Array.isArray(filteredTokens) || filteredTokens.length === 0) {
-            toastr.info('Tidak ada token yang cocok dengan filter untuk dipindai.');
+        // Multi‑chain: use visible (search-filtered) tokens if search active; else use the current list order (CHAIN ∩ CEX)
+        let toScan = Array.isArray(window.currentListOrderMulti) ? window.currentListOrderMulti : (Array.isArray(filteredTokens) ? filteredTokens : []);
+        try {
+            const q = ($('#searchInput').val() || '').trim();
+            if (q) {
+                toScan = Array.isArray(window.scanCandidateTokens) ? window.scanCandidateTokens : [];
+            }
+        } catch(_) {}
+        if (!Array.isArray(toScan) || toScan.length === 0) {
+            toastr.info('Tidak ada token yang cocok dengan hasil pencarian/fitur filter untuk dipindai.');
             return;
         }
-        startScanner(filteredTokens, settings, 'dataTableBody');
+        startScanner(toScan, settings, 'dataTableBody');
     });
 
     // Token Management Form Handlers
@@ -1245,6 +1355,7 @@ $(document).ready(function() {
             // legacy containers removed; filter card handles UI
             const st = getAppState();
             setHomeHref(st.lastChain || getDefaultChain());
+            try { applySortToggleState(); } catch(_) {}
             return;
         }
 
@@ -1265,6 +1376,7 @@ $(document).ready(function() {
         setHomeHref(requested);
         // try { renderSingleChainFilters(requested); } catch(_) {} // Legacy filter - REMOVED
         try { loadAndDisplaySingleChainTokens(); } catch(e) { console.error('single-chain init error', e); }
+        try { applySortToggleState(); } catch(_) {}
     }
 
     applyModeFromURL();

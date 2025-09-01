@@ -171,7 +171,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     clearAllWatchdogs();
                                     const finalDexRes = isFallback ? { ...dexResponse, dexTitle: `${dexResponse.dexTitle || dex} via SWOOP` } : dexResponse;
                                     const update = calculateResult(
-                                        baseId, finalDexRes.tableBodyId, finalDexRes.amount_out, finalDexRes.FeeSwap,
+                                        baseId, tableBodyId, finalDexRes.amount_out, finalDexRes.FeeSwap,
                                         isKiri ? token.sc_in : token.sc_out, isKiri ? token.sc_out : token.sc_in,
                                         token.cex, isKiri ? modalKiri : modalKanan,
                                         isKiri ? amount_in_token : amount_in_pair,

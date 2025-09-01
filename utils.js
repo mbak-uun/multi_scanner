@@ -268,7 +268,8 @@ function applyThemeForMode() {
  * @returns {string} HTML string for the anchor tag.
  */
 function createHoverLink(url, text, className = '') {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="hover-link ${className}" title="${url}">${text}</a>`;
+    // Force link to inherit color from its parent (so chain accent colors apply)
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="hover-link ${className}" style="color:inherit;" title="${url}">${text}</a>`;
 }
 
 /**

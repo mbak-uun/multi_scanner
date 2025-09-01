@@ -256,7 +256,7 @@ const dexStrategies = {
     },
     odos: {
         buildRequest: ({ action, codeChain, SavedSettingData, amount_in_big, sc_input, sc_output }) => {
-            const url = "https://vercel-proxycors.vercel.app/?url=https://api.odos.xyz/sor/quote/v2";
+            const url = "https://api.odos.xyz/sor/quote/v3";
             return {
                 url: url,
                 method: 'POST',
@@ -534,7 +534,7 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
     const urls = GeturlExchanger(cex.toUpperCase(), fromSymbol, toSymbol) || {};
     const linkCEX = `<a href="${urls.tradeToken || '#'}">${cex.toUpperCase()}</a>`;
 
-    const message = `<b>#MULTISCAN #${chainConfig.Nama_Chain.toUpperCase()}</b>\n<b>USER:</b> ~ ${nickname||'-'}\n-----------------------------------------\n<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n<b>TOKEN-PAIR:</b> <b>#<a href="${urls.tradeToken||'#'}">${fromSymbol}</a>_<a href="${urls.tradePair||'#'}">${toSymbol}</a></b>\n<b>MODAL:</b> $${modal} | <b>PROFIT:</b> ${PNL.toFixed(2)}$\n<b>BUY:</b> ${linkBuy} @ ${Number(priceBUY)||0}\n<b>SELL:</b> ${linkSell} @ ${Number(priceSELL)||0}\n<b>FEE WD:</b> ${Number(FeeWD).toFixed(3)}$\n<b>FEE TOTAL:</b> $${Number(totalFee).toFixed(2)} | <b>SWAP:</b> $${Number(FeeSwap).toFixed(2)}\n-----------------------------------------`;
+    const message = `<b>#MULTISCANNER #${chainConfig.Nama_Chain.toUpperCase()}</b>\n<b>USER:</b> ~ ${nickname||'-'}\n-----------------------------------------\n<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n<b>TOKEN-PAIR:</b> <b>#<a href="${urls.tradeToken||'#'}">${fromSymbol}</a>_<a href="${urls.tradePair||'#'}">${toSymbol}</a></b>\n<b>MODAL:</b> $${modal} | <b>PROFIT:</b> ${PNL.toFixed(2)}$\n<b>BUY:</b> ${linkBuy} @ ${Number(priceBUY)||0}\n<b>SELL:</b> ${linkSell} @ ${Number(priceSELL)||0}\n<b>FEE WD:</b> ${Number(FeeWD).toFixed(3)}$\n<b>FEE TOTAL:</b> $${Number(totalFee).toFixed(2)} | <b>SWAP:</b> $${Number(FeeSwap).toFixed(2)}\n-----------------------------------------`;
     const url = `https://api.telegram.org/bot${CONFIG_TELEGRAM.BOT_TOKEN}/sendMessage`;
     const payload = { chat_id: CONFIG_TELEGRAM.CHAT_ID, text: message, parse_mode: "HTML", disable_web_page_preview: true };
     $.post(url, payload);
