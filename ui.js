@@ -230,6 +230,21 @@ function openEditModalById(id) {
     const $ctx = $('#FormEditKoinModal');
     const $sel = $ctx.find('#mgrChain');
     populateChainSelect($sel, token.chain);
+    // Enforce chain select behavior by mode and apply modal theme
+    try {
+        if (m.type === 'single') {
+            const c = String(m.chain).toLowerCase();
+            $sel.val(c).prop('disabled', true).attr('title', 'Per-chain mode: Chain terkunci');
+            applyEditModalTheme(c);
+            // Show copy-to-multichain button in per-chain mode
+            $('#CopyToMultiBtn').show();
+        } else {
+            $sel.prop('disabled', false).attr('title', '');
+            applyEditModalTheme(null); // multi-mode theme
+            // Hide copy-to-multichain in multi mode
+            $('#CopyToMultiBtn').hide();
+        }
+    } catch(_) {}
     
     try { buildCexCheckboxForKoin(token); } catch (e) { console.warn('Build CEX gagal:', e); }
     try { buildDexCheckboxForKoin(token); } catch (e) { console.warn('Build DEX gagal:', e); }
@@ -237,11 +252,38 @@ function openEditModalById(id) {
     $sel.off('change.rebuildDex').on('change.rebuildDex', function(){
         const newChain = $(this).val();
         try { buildDexCheckboxForKoin({ ...token, chain: newChain }); } catch (_) {}
+        try { applyEditModalTheme(String(newChain).toLowerCase()); } catch(_){}
     });
 
     if (window.UIkit && UIkit.modal) {
         UIkit.modal('#FormEditKoinModal').show();
     }
+}
+
+/**
+ * Applies themed colors to the Edit Koin modal.
+ * - For per-chain: use CONFIG_CHAINS[chain].WARNA
+ * - For multi: use default green accent
+ */
+function applyEditModalTheme(chainKey) {
+    const accent = (chainKey && window.CONFIG_CHAINS && window.CONFIG_CHAINS[chainKey] && window.CONFIG_CHAINS[chainKey].WARNA)
+        ? window.CONFIG_CHAINS[chainKey].WARNA
+        : '#5c9514';
+    const $modal = $('#FormEditKoinModal');
+    // Accent borders and header
+    $modal.find('.uk-modal-dialog').css('border-top', `3px solid ${accent}`);
+    $modal.find('#judulmodal').css({ background: accent, color: '#fff', borderRadius: '4px' });
+    $modal.find('.uk-card.uk-card-default').css('border-color', accent);
+
+    // Reset previous text colors first (avoid stacking)
+    $modal.find('.uk-form-label').css('color', '');
+    $modal.find('#dex-checkbox-koin label').css('color', '');
+    $modal.find('.uk-text-bold').not('#cex-checkbox-koin *').css('color', '');
+
+    // Apply accent text color across modal except CEX data area
+    $modal.find('.uk-form-label').css('color', accent);
+    $modal.find('#dex-checkbox-koin label').css('color', accent);
+    $modal.find('.uk-text-bold').not('#cex-checkbox-koin *').css('color', accent);
 }
 
 /**

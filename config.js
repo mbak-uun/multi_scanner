@@ -99,8 +99,6 @@ const CONFIG_CHAINS = {
         PAIRDEXS: {
             "BNB": { symbolPair: "BNB", scAddressPair: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", desPair: "18" },
             "USDT": { symbolPair: "USDT", scAddressPair: "0x55d398326f99059fF775485246999027B3197955", desPair: "18" },
-            "UNI": { symbolPair: "UNI", scAddressPair: "0xBf5140A22578168FD562DCcF235E5D43A02ce9B1", desPair: "18" },
-            "ETC": { symbolPair: "ETC", scAddressPair: "0x3d6545b08693daE087E957cb1180ee38B9e3c25E", desPair: "18" },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }        
     },

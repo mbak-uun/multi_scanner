@@ -522,7 +522,7 @@ function deferredInit() {
             const chainCfg = (window.CONFIG_CHAINS||{})[m.chain] || {};
             const chainName = chainCfg.Nama_Chain || m.chain.toUpperCase();
             // Hide multi components
-            $('#sinyal-container, #header-table').hide();
+           // $('#sinyal-container, #header-table').hide();
             $('#dataTableBody').closest('.uk-overflow-auto').hide();
             $('#token-management').hide();
             // Show single view
@@ -702,6 +702,21 @@ function deferredInit() {
       const $sel = $('#FormEditKoinModal #mgrChain');
       populateChainSelect($sel, empty.chain);
 
+      // Enforce chain select by mode + theme the modal
+      try {
+        const m = getAppMode();
+        if (m.type === 'single') {
+          const c = String(m.chain).toLowerCase();
+          $sel.val(c).prop('disabled', true).attr('title','Per-chain mode: Chain terkunci');
+          if (typeof applyEditModalTheme === 'function') applyEditModalTheme(c);
+          $('#CopyToMultiBtn').show();
+        } else {
+          $sel.prop('disabled', false).attr('title','');
+          if (typeof applyEditModalTheme === 'function') applyEditModalTheme(null);
+          $('#CopyToMultiBtn').hide();
+        }
+      } catch(_) {}
+
       const currentChain = String($sel.val() || empty.chain).toLowerCase();
       const baseToken = { ...empty, chain: currentChain };
 
@@ -711,6 +726,7 @@ function deferredInit() {
       $sel.off('change.rebuildDexAdd').on('change.rebuildDexAdd', function () {
         const newChain = String($(this).val() || '').toLowerCase();
         buildDexCheckboxForKoin({ ...baseToken, chain: newChain });
+        try { if (typeof applyEditModalTheme === 'function') applyEditModalTheme(newChain); } catch(_){}
       });
 
       if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').show();
@@ -823,6 +839,7 @@ function deferredInit() {
         if (m.type === 'single') setTokensChain(m.chain, tokens); else setTokensMulti(tokens);
         toastr.success(idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan');
         refreshTokensTable();
+        try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(_) {}
         setLastAction(idx !== -1 ? "UBAH DATA KOIN" : "TAMBAH DATA KOIN");
         if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
     });
@@ -835,6 +852,65 @@ function deferredInit() {
             deleteTokenById(id);
             toastr.success(`KOIN TERHAPUS`);
             if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
+        }
+    });
+
+    // Copy current edited token to Multichain store (from per-chain edit modal)
+    $(document).on('click', '#CopyToMultiBtn', function(){
+        try {
+            const mode = getAppMode();
+            if (mode.type !== 'single') {
+                toastr.info('Tombol ini hanya tersedia pada mode per-chain.');
+                return;
+            }
+            const chainKey = String(mode.chain).toLowerCase();
+            const id = $('#multiTokenIndex').val();
+            let singleTokens = getTokensChain(chainKey);
+            const idx = singleTokens.findIndex(t => String(t.id) === String(id));
+            const prevDataCexs = idx !== -1 ? (singleTokens[idx].dataCexs || {}) : {};
+
+            const tokenObj = {
+                id: id || Date.now().toString(),
+                symbol_in: ($('#inputSymbolToken').val() || '').trim(),
+                des_in: Number($('#inputDesToken').val() || 0),
+                sc_in: ($('#inputSCToken').val() || '').trim(),
+                symbol_out: ($('#inputSymbolPair').val() || '').trim(),
+                des_out: Number($('#inputDesPair').val() || 0),
+                sc_out: ($('#inputSCPair').val() || '').trim(),
+                chain: chainKey,
+                status: readStatusRadio(),
+                ...readCexSelectionFromForm(),
+                ...readDexSelectionFromForm()
+            };
+
+            if (!tokenObj.symbol_in || !tokenObj.symbol_out) return toastr.warning('Symbol Token & Pair tidak boleh kosong');
+            if ((tokenObj.selectedDexs||[]).length > 4) return toastr.warning('Maksimal 4 DEX yang dipilih');
+
+            // Build dataCexs preserving previous per-chain CEX details if available
+            const dataCexs = {};
+            (tokenObj.selectedCexs || []).forEach(cx => {
+                const up = String(cx).toUpperCase();
+                dataCexs[up] = prevDataCexs[up] || { feeWDToken: 0, feeWDPair: 0, depositToken: false, withdrawToken: false, depositPair: false, withdrawPair: false };
+            });
+            tokenObj.dataCexs = dataCexs;
+
+            // Upsert into TOKEN_MULTICHAIN by (chain, symbol_in, symbol_out)
+            let multi = getTokensMulti();
+            const matchIdx = multi.findIndex(t => String(t.chain).toLowerCase() === chainKey && String(t.symbol_in||'').toUpperCase() === tokenObj.symbol_in.toUpperCase() && String(t.symbol_out||'').toUpperCase() === tokenObj.symbol_out.toUpperCase());
+            let proceed = true;
+            if (matchIdx !== -1) {
+                proceed = confirm('DATA KOIN di mode Multichain SUDAH ADA. Ganti dengan data ini?');
+                if (!proceed) return;
+                multi[matchIdx] = { ...multi[matchIdx], ...tokenObj };
+            } else {
+                multi.push(tokenObj);
+            }
+            setTokensMulti(multi);
+            toastr.success('Koin berhasil disalin ke mode Multichain');
+            try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(_){}
+        } catch(e) {
+            console.error('Copy to Multichain failed:', e);
+            toastr.error('Gagal menyalin ke Multichain');
         }
     });
 
@@ -1053,10 +1129,10 @@ function deferredInit() {
         });
 
         setTokensChain(activeSingleChainKey, merged);
-        try { setLastAction("SINKRONISASI KOIN"); } catch(_) {}
+        try { setLastAction(`SINKRONISASI KOIN ${chainKey.toUpperCase()}`); } catch(_) {}
         toastr.success(`Saved ${selectedTokens.length} tokens for ${activeSingleChainKey}.`);
         UIkit.modal('#sync-modal').hide();
-
+        //location.reload();
         // Reload table and filter card summary so user sees updated totals
         try { loadAndDisplaySingleChainTokens(); } catch(e) { console.warn(e); }
         try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(e) { console.warn(e); }

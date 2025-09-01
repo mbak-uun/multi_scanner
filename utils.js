@@ -107,7 +107,23 @@ function getTokensMulti(){
 }
 
 function setTokensMulti(list){
-    saveToLocalStorage('TOKEN_MULTICHAIN', Array.isArray(list)? list: []);
+    const prev = getFromLocalStorage('TOKEN_MULTICHAIN', []);
+    const arr = Array.isArray(list) ? list : [];
+    saveToLocalStorage('TOKEN_MULTICHAIN', arr);
+    try {
+        const hadNoneBefore = !Array.isArray(prev) || prev.length === 0;
+        const nowHas = Array.isArray(arr) && arr.length > 0;
+        if (nowHas && hadNoneBefore) {
+            // Initialize default FILTER_MULTICHAIN to select all chains and CEX
+            const chains = Object.keys(window.CONFIG_CHAINS || {}).map(k => String(k).toLowerCase());
+            const cex = Object.keys(window.CONFIG_CEX || {}).map(k => String(k).toUpperCase());
+            const existing = getFromLocalStorage('FILTER_MULTICHAIN', null);
+            const empty = !existing || (!Array.isArray(existing.chains) && !Array.isArray(existing.cex)) || ((existing.chains||[]).length===0 && (existing.cex||[]).length===0);
+            if (empty) {
+                setFilterMulti({ chains, cex });
+            }
+        }
+    } catch(_) {}
 }
 
 function getTokensChain(chain){
@@ -117,7 +133,26 @@ function getTokensChain(chain){
 }
 
 function setTokensChain(chain, list){
-    saveToLocalStorage(`TOKEN_${String(chain).toUpperCase()}`, Array.isArray(list)? list: []);
+    const key = `TOKEN_${String(chain).toUpperCase()}`;
+    const prev = getFromLocalStorage(key, []);
+    const arr = Array.isArray(list) ? list : [];
+    saveToLocalStorage(key, arr);
+    try {
+        const hadNoneBefore = !Array.isArray(prev) || prev.length === 0;
+        const nowHas = Array.isArray(arr) && arr.length > 0;
+        if (nowHas && hadNoneBefore) {
+            // Initialize default FILTER_<CHAIN> to select all relevant CEX and PAIR
+            const cfg = (window.CONFIG_CHAINS || {})[String(chain).toLowerCase()] || {};
+            const cex = Object.keys(cfg.WALLET_CEX || window.CONFIG_CEX || {}).map(k => String(k));
+            const pairs = Array.from(new Set([...(Object.keys(cfg.PAIRDEXS || {})), 'NON'])).map(x => String(x).toUpperCase());
+            const fkey = `FILTER_${String(chain).toUpperCase()}`;
+            const existing = getFromLocalStorage(fkey, null);
+            const empty = !existing || ((existing.cex||[]).length===0 && (existing.pair||[]).length===0);
+            if (empty) {
+                setFilterChain(chain, { cex, pair: pairs });
+            }
+        }
+    } catch(_) {}
 }
 
 // =================================================================================
@@ -144,7 +179,7 @@ function getFeatureReadiness() {
     const feature = {
         settings: true,
         scan: hasSettings && (mode.type === 'single' ? hasTokensChain : hasTokensMulti),
-        manage: hasSettings && (mode.type !== 'single'),
+        manage: hasSettings, // aktif jika setting sudah ada (semua mode)
         sync: hasSettings && (mode.type === 'single'),
         import: hasSettings,
         export: hasSettings && (mode.type === 'single' ? hasTokensChain : hasTokensMulti),
@@ -207,6 +242,9 @@ function applyThemeForMode() {
           /* Toggles */
           .toggle-radio.active { background-color: var(--theme-accent) !important; }
           #judul { color: #000; }
+          /* Themed body background */
+          body.theme-single { background: linear-gradient(180deg, var(--theme-accent) 0%, #ffffff 45%) !important; }
+          body.theme-multi  { background: linear-gradient(180deg, #5c9514 0%, #ffffff 45%) !important; }
         `;
         if (!styleEl) {
             styleEl = document.createElement('style');
