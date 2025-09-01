@@ -546,6 +546,13 @@ function deferredInit() {
     }
 
     renderFilterCard();
+    // Ensure UI gating matches current run state after initial render
+    try {
+        const st = getAppState();
+        if (st && st.run === 'YES' && typeof setScanUIGating === 'function') {
+            setScanUIGating(true);
+        }
+    } catch(_) {}
     // helper to reflect saved sort preference to A-Z / Z-A toggle
     function applySortToggleState() {
         try {
@@ -1455,6 +1462,13 @@ $(document).ready(function() {
     }
 
     applyModeFromURL();
+    // Apply gating again after mode/layout switches
+    try {
+        const st2 = getAppState();
+        if (st2 && st2.run === 'YES' && typeof setScanUIGating === 'function') {
+            setScanUIGating(true);
+        }
+    } catch(_) {}
 
     // Build chain icon links based on CONFIG_CHAINS
     function renderChainLinks(activeKey = 'all') {

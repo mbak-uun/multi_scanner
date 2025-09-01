@@ -764,6 +764,10 @@ function setScanUIGating(isRunning) {
             $('#filter-card').find('input, select, button, textarea').prop('disabled', true);
             // Some extra clickable items in page
             $('.sort-toggle, .edit-token-button, #chain-links-container a').css({ pointerEvents: 'none', opacity: 0.4 });
+            // Keep STOP button usable during running
+            $('#stopSCAN').prop('disabled', false).show();
+            // Keep RELOAD usable (already via toolbar allow-list), disable START explicitly
+            $('#startSCAN').prop('disabled', true);
         } else {
             // Re-enable toolbar
             $allToolbar.css({ pointerEvents: '', opacity: '' });
