@@ -70,6 +70,23 @@ function saveActiveFilters(obj) {
     return saveToLocalStorage(getActiveFilterKey(), obj || {});
 }
 
+// PNL filter helpers per mode
+function getPNLFilter() {
+    try {
+        const f = getFromLocalStorage(getActiveFilterKey(), {}) || {};
+        const v = parseFloat(f.pnl);
+        return isFinite(v) && v >= 0 ? v : 0;
+    } catch(_) { return 0; }
+}
+
+function setPNLFilter(value) {
+    const v = parseFloat(value);
+    const key = getActiveFilterKey();
+    const f = getFromLocalStorage(key, {}) || {};
+    f.pnl = isFinite(v) && v >= 0 ? v : 0;
+    saveToLocalStorage(key, f);
+}
+
 // =================================================================================
 // MODULAR FILTER AND TOKEN HELPERS (shared across app)
 // =================================================================================

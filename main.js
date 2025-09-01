@@ -221,11 +221,10 @@ function renderSettingsForm() {
 
     // Load existing settings
     const appSettings = getFromLocalStorage('SETTING_SCANNER') || {};
-    $('#user').val(appSettings.nickname || '');
-    $('#jeda-time-group').val(appSettings.jedaTimeGroup || 1500);
-    $('#jeda-koin').val(appSettings.jedaKoin || 500);
-    $('#walletMeta').val(appSettings.walletMeta || '');
-    $('#inFilterPNL').val(appSettings.filterPNL || 1);
+        $('#user').val(appSettings.nickname || '');
+        $('#jeda-time-group').val(appSettings.jedaTimeGroup || 1500);
+        $('#jeda-koin').val(appSettings.jedaKoin || 500);
+        $('#walletMeta').val(appSettings.walletMeta || '');
     $(`input[name=\"koin-group\"][value=\"${appSettings.scanPerKoin || 5}\"]`).prop('checked', true);
     $(`input[name=\"waktu-tunggu\"][value=\"${appSettings.speedScan || 2}\"]`).prop('checked', true);
 
@@ -367,7 +366,6 @@ function deferredInit() {
         const $wrap = $('#filter-groups'); if(!$wrap.length) return; $wrap.empty();
         const m = getMode();
         const settings = getFromLocalStorage('SETTING_SCANNER', {}) || {};
-        const $head = $('#filter-head');
         const $headLabels = $('#filter-head-labels');
         const $hdr = $('#current-chain-label');
         if ($hdr.length) {
@@ -381,13 +379,13 @@ function deferredInit() {
             }
         }
         const $sum = $('#filter-summary');
-        // Sync icon handling: only in per-chain mode and shown at header before labels
+        // Sync icon handling: only in per-chain mode and placed at far-left of filter chips
         if (m.mode === 'single') {
             let $sync = $('#sync-tokens-btn');
             if (!$sync.length) {
                 $sync = $('<img id="sync-tokens-btn" class="icon" width="25" src="https://cdn-icons-png.flaticon.com/512/6713/6713079.png" title="Sinkronisasi Data Koin"/>');
             }
-            if ($head.length) { $sync.detach(); $head.prepend($sync); }
+            if ($wrap.length) { $sync.detach(); $wrap.prepend($sync); }
         } else {
             const $sync = $('#sync-tokens-btn');
             if ($sync.length) $sync.remove();
@@ -425,7 +423,7 @@ function deferredInit() {
             } else {
                 total = 0;
             }
-            if ($sum.length) $sum.text(`TOTAL KOIN: ${total}`);
+            if ($sum.length) { $sum.text(`TOTAL KOIN: ${total}`); $sum.css('margin-left','auto'); }
             $wrap.off('change.multif').on('change.multif','label.fc-chain input, label.fc-cex input',function(){
                 const prev = getFilterMulti();
                 const prevChains = (prev.chains||[]).map(s=>String(s).toLowerCase());
@@ -484,7 +482,7 @@ function deferredInit() {
             } else {
                 totalSingle = 0;
             }
-            if ($sum.length) $sum.text(`TOTAL KOIN: ${totalSingle}`);
+            if ($sum.length) { $sum.text(`TOTAL KOIN: ${totalSingle}`); $sum.css('margin-left','auto'); }
             $wrap.off('change.scf').on('change.scf','label.sc-cex input, label.sc-pair input',function(){
                 const prev = getFilterChain(chain);
                 const prevC = (prev.cex||[]).map(String);
@@ -629,9 +627,28 @@ function deferredInit() {
         } catch(_) {}
     });
 
+    // Initialize and persist PNL filter input per mode
+    function syncPnlInputFromStorage() {
+        try {
+            const v = (typeof getPNLFilter === 'function') ? getPNLFilter() : 0;
+            $('#pnlFilterInput').val(v);
+        } catch(_) {}
+    }
+    syncPnlInputFromStorage();
+
+    $(document).on('change blur', '#pnlFilterInput', function(){
+        const raw = $(this).val();
+        const v = parseFloat(raw);
+        const clean = isFinite(v) && v >= 0 ? v : 0;
+        try {
+            setPNLFilter(clean);
+            $(this).val(clean);
+            try { toastr.info(`PNL Filter diset: $${clean}`); } catch(_) {}
+        } catch(_) {}
+    });
+
     $('#btn-save-setting').on('click', function() {
         const nickname = $('#user').val().trim();
-        let filterPNL = parseFloat($('#inFilterPNL').val());
         const jedaTimeGroup = parseInt($('#jeda-time-group').val(), 10);
         const jedaKoin = parseInt($('#jeda-koin').val(), 10);
         const walletMeta = $('#walletMeta').val().trim();
@@ -654,7 +671,7 @@ function deferredInit() {
         });
 
         const settingData = {
-            nickname, jedaTimeGroup, jedaKoin, filterPNL, walletMeta,
+            nickname, jedaTimeGroup, jedaKoin, walletMeta,
             scanPerKoin: parseInt(scanPerKoin, 10),
             speedScan: parseFloat(speedScan),
             JedaCexs,
@@ -763,6 +780,11 @@ function deferredInit() {
         } catch(_) {}
 
         // Re-render token management list to apply same query
+        try { renderTokenManagementList(); } catch(_) {}
+    }, 250));
+
+    // Management search input (visible only on Token Management view)
+    $(document).on('input', '#mgrSearchInput', debounce(function(){
         try { renderTokenManagementList(); } catch(_) {}
     }, 250));
 
@@ -1356,6 +1378,7 @@ $(document).ready(function() {
             const st = getAppState();
             setHomeHref(st.lastChain || getDefaultChain());
             try { applySortToggleState(); } catch(_) {}
+            try { syncPnlInputFromStorage(); } catch(_) {}
             return;
         }
 
@@ -1377,6 +1400,7 @@ $(document).ready(function() {
         // try { renderSingleChainFilters(requested); } catch(_) {} // Legacy filter - REMOVED
         try { loadAndDisplaySingleChainTokens(); } catch(e) { console.error('single-chain init error', e); }
         try { applySortToggleState(); } catch(_) {}
+        try { syncPnlInputFromStorage(); } catch(_) {}
     }
 
     applyModeFromURL();

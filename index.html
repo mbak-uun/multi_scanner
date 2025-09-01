@@ -75,18 +75,15 @@
     </div>
 
     <!-- Unified Filter Card -->
-    <div id="filter-card" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small">
-        <div id="filter-head" class="uk-flex uk-flex-middle uk-flex-wrap uk-margin-small-bottom" style="gap:8px; justify-content:space-between;">
-            <!-- Sync icon injected here only on per-chain mode -->
-            <div class="uk-flex uk-flex-middle uk-flex-wrap" style="gap:8px;">
-              <span id="filter-summary" class="uk-text-small uk-text-muted">TOTAL: 0</span>
-              <span id="filter-head-labels" class="uk-text-small uk-text-muted"></span>
-            </div>
-            <div class="uk-flex uk-flex-middle" style="gap:6px;">
-              <input type="text" id="searchInput" class="uk-input uk-form-small uk-form-primary uk-form-width-small" placeholder="Cari Koin...">
-            </div>
+    <div id="filter-card" class="uk-card uk-card-default uk-margin-small header-card uk-card-hover">
+        <div id="filter-head" class="uk-flex uk-flex-middle uk-flex-wrap" style="gap:8px;">
+            <!-- Placeholder so renderer detects labels container -->
+            <span id="filter-head-labels" class="uk-text-small uk-text-muted" style="display:none;"></span>
         </div>
-        <div id="filter-groups" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+        <div id="filter-groups" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <!-- Sync icon will be injected at the very left in per-chain mode -->
+            <span id="filter-summary" class="uk-text-small uk-text-muted" style="margin-left:auto;">TOTAL: 0</span>
+        </div>
     </div>
 
     <div class="uk-card uk-card-default uk-padding-small uk-card-hover" id="scanner-config" >
@@ -104,8 +101,7 @@
                  <input class="form-check-input me-1" type="checkbox" id="autoScrollCheckbox">
                 <label class=" uk-text-warning" for="autoScrollCheckbox">Auto Scroll</label>
             </div>
-
-            &nbsp; SCANNER: 
+                     <span class="uk-text-dark uk-text-bolder">SCANNER:</span>
                     <!-- Checkbox -->
                     <label>
                         <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
@@ -116,9 +112,21 @@
                         <span class="uk-text-success uk-form-label">KANAN</span>
                     </label>
                    
-                    
+                   
 
-                    <!-- Sort Buttons -->
+                    <!-- PNL Filter per mode -->
+                    <div class="uk-inline uk-margin-small-left">
+                        <span class="uk-text-danger uk-text-bolder">PNL</span>
+                        <input id="pnlFilterInput" class="uk-input uk-form-small" type="number" step="0.01" min="0" placeholder="PNL $" style="width:70px;">                    
+                    </div>
+
+                    <!-- Search (moved here) -->
+                    <div class="uk-margin-small-left uk-flex uk-flex-middle">
+                        <!-- <span class="uk-text-success uk-text-bolder">SEARCH</span> -->
+                        <input type="text" id="searchInput" class="uk-input uk-form-small uk-form-primary uk-form-width-small" placeholder="Cari Koin...">
+                    </div>
+
+                     <!-- Sort Buttons -->
                     <div class="uk-button-group">
                         <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active" data-sort="opt_A">
                             <input class="uk-hidden" type="radio" name="toggle" value="opt_A" checked> A-Z
@@ -127,7 +135,6 @@
                             <input class="uk-hidden" type="radio" name="toggle" value="opt_Z"> Z-A
                         </label>
                     </div>
-
                     <!-- Start/Stop Buttons -->
                     <div class="uk-button-group">
                         <button type="button" id="startSCAN" data-feature="scan" class="uk-button uk-button-secondary uk-button-small">START</button>
@@ -215,10 +222,7 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="uk-text-warning">FILTER PNL ($)</label><br/>
-                            <input class="uk-input" type="number" id="inFilterPNL" value="1" name="filterpnl">
-                        </div>
+                        
 
                         <div class="uk-flex uk-flex-middle uk-margin">
                             <div style="flex:1; margin-right: 8px;">
@@ -246,25 +250,29 @@
         </form>
     </section>
 
-    <section id="token-management" style="display: none;" >
-       
-        <!-- Statistik -->
-        <div id="token-management-stats" class="uk-card uk-card-body uk-card-default uk-padding-small uk-margin-small-bottom uk-text-small">
-            <!-- stats + controls will be injected dynamically -->
+    <section id="token-management" class="uk-card uk-card-default uk-padding-small uk-card-hover" style="display: none;" >
+
+        <!-- Config Manajemen (terpisah seperti config-scanner) -->
+        <div id="manager-config" class="uk-card uk-card-default uk-padding-small uk-card-hover uk-margin-small-bottom">
+            <div id="token-management-stats" class="uk-text-small">
+                <!-- stats + controls will be injected dynamically -->
+            </div>
         </div>
-        <div class="uk-overflow-auto" style="max-height:100vh;">
+
+        <!-- Tabel Manajemen (terpisah dari config) -->
+        <div id="manager-table" class="uk-overflow-auto" style="max-height:100vh;">
             <table class="uk-table uk-table-striped uk-table-divider">
-            <thead class="uk-background-secondary">
-                <tr>
-                <th style="width:46px">No</th>
-                <th>Symbol Token / Pair</th>
-                <th>Chain & Status</th>
-                <th>Exchanger</th>
-                <th>DEX & Modal [KIRI | KANAN]</th>
-                <th style="width:130px">Action</th>
-                </tr>
-            </thead>
-            <tbody id="mgrTbody"></tbody>
+                <thead class="uk-background-secondary">
+                    <tr>
+                    <th style="width:46px">No</th>
+                    <th>Symbol Token / Pair</th>
+                    <th>Chain & Status</th>
+                    <th>Exchanger</th>
+                    <th>DEX & Modal [KIRI | KANAN]</th>
+                    <th style="width:130px">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="mgrTbody"></tbody>
             </table>
         </div>
     </section>
@@ -314,7 +322,7 @@
         <div class="uk-flex uk-flex-middle uk-margin-small" id="judulmodal">
         <div class="uk-width-expand"></div>
         <div class="uk-text-center uk-width-auto">
-            <h4 class="uk-modal-title uk-margin-remove">FORM Token & Pair</h4>
+            <h4 class="uk-modal-title uk-margin-remove">FORM KOIN [TOKEN & PAIR]</h4>
         </div>
         <div class="uk-width-expand uk-text-right">
             

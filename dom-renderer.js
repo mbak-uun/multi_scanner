@@ -223,8 +223,10 @@ function renderTokenManagementList() {
         statsHtml = `<b class="uk-text-primary uk-text-bolder">STATISTIK KOIN</b>: ${chainStatsHtml} | ${cexStatsHtml}`;
     }
 
-    const currentQ = ($('#searchInput').length ? ($('#searchInput').val() || '') : '');
+    const currentQ = ($('#mgrSearchInput').length ? ($('#mgrSearchInput').val() || '') : ($('#searchInput').length ? ($('#searchInput').val() || '') : ''));
+    const safeQ = String(currentQ || '').replace(/"/g, '&quot;');
     const controls = `
+        <input id="mgrSearchInput" class="uk-input uk-form-small" type="text" placeholder="Cari koin..." style="width:160px;" value="${safeQ}"> 
         <button id="btnNewToken" class="uk-button uk-button-primary uk-button-small"><span uk-icon="plus-circle"></span> Add KOIN</button>
         <button id="btnExportTokens" data-feature="export" class="uk-button uk-button-small uk-button-secondary" title="Export CSV">
           <span uk-icon="download"></span> Export
@@ -234,7 +236,18 @@ function renderTokenManagementList() {
         </button>
         <input type="file" id="uploadJSON" accept=".csv,text/csv" style="display:none;" onchange="uploadTokenScannerCSV(event)">
     `;
-    $('#token-management-stats').html(`<div class="uk-flex uk-flex-middle uk-flex-between" style="gap:8px;"> <div class="uk-text-small" style="white-space:nowrap;">${statsHtml}</div> <div class="uk-flex uk-flex-middle" style="gap:6px;">${controls}</div></div>`);
+
+    // Render header only once; on subsequent calls, only update stats summary to avoid losing focus on input
+    const $hdr = $('#token-management-stats');
+    if ($hdr.find('.mgr-header').length === 0) {
+        const headerHtml = `<div class="uk-flex uk-flex-middle uk-flex-between mgr-header" style="gap:8px;">
+            <div id="mgrStatsSummary" class="uk-text-small" style="white-space:nowrap;">${statsHtml}</div>
+            <div class="uk-flex uk-flex-middle" style="gap:6px;">${controls}</div>
+        </div>`;
+        $hdr.html(headerHtml);
+    } else {
+        $('#mgrStatsSummary').html(statsHtml);
+    }
 
     // Now, apply the search filter to the already chain/cex filtered list for the table display
     const q = (currentQ || '').toLowerCase();
@@ -367,7 +380,7 @@ function DisplayPNL(data) {
         sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer"><label title="${cex} SELL: ${Name_in}->USDT"> ${formatPrice(priceSellToken_CEX)}</label></a>`;
     }
 
-    const filterPNLValue = parseFloat(SavedSettingData?.filterPNL) || 0;
+    const filterPNLValue = (typeof getPNLFilter === 'function') ? getPNLFilter() : (parseFloat(SavedSettingData?.filterPNL) || 0);
     const nickname = SavedSettingData?.nickname || '';
     const checkVol = $('#checkVOL').is(':checked');
     const totalGet = parseFloat(totalValue) - parseFloat(Modal);
@@ -419,7 +432,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     const chainData = getChainData(nameChain);
     const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
     const warnaChain = String(chainData?.COLOR_CHAIN);
-    const filterPNLValue = parseFloat(SavedSettingData.filterPNL);
+    const filterPNLValue = (typeof getPNLFilter === 'function') ? getPNLFilter() : parseFloat(SavedSettingData.filterPNL);
     const warnaCEX = getWarnaCEX(cex);
     const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
     const baseId = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
