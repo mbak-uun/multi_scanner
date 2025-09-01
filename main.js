@@ -378,14 +378,17 @@ function deferredInit() {
                 $hdr.text('[ALL]').css('color', '#666');
             }
         }
-        const $sum = $('#filter-summary');
-        // Sync icon handling: only in per-chain mode and placed at far-left of filter chips
+        // Build right-side group (sync + total) aligned to the right
+        const createRightGroup = () => $('<div id="filter-right-group" class="uk-flex uk-flex-middle" style="gap:6px; margin-left:auto;"></div>');
+        let $right = createRightGroup();
+        let $sum = $('<span id="filter-summary" class="uk-text-small uk-text-muted" style="font-weight:bolder;">TOTAL KOIN: 0</span>');
+        // Sync icon handling: only in per-chain mode and placed to the left of total
         if (m.mode === 'single') {
             let $sync = $('#sync-tokens-btn');
             if (!$sync.length) {
                 $sync = $('<img id="sync-tokens-btn" class="icon" width="25" src="https://cdn-icons-png.flaticon.com/512/6713/6713079.png" title="Sinkronisasi Data Koin"/>');
             }
-            if ($wrap.length) { $sync.detach(); $wrap.prepend($sync); }
+            if ($wrap.length) { $sync.detach(); $right.append($sync); }
         } else {
             const $sync = $('#sync-tokens-btn');
             if ($sync.length) $sync.remove();
@@ -423,7 +426,9 @@ function deferredInit() {
             } else {
                 total = 0;
             }
-            if ($sum.length) { $sum.text(`TOTAL KOIN: ${total}`); $sum.css('margin-left','auto'); }
+            $sum.text(`TOTAL KOIN: ${total}`);
+            $right.append($sum);
+            $wrap.append($right);
             $wrap.off('change.multif').on('change.multif','label.fc-chain input, label.fc-cex input',function(){
                 const prev = getFilterMulti();
                 const prevChains = (prev.chains||[]).map(s=>String(s).toLowerCase());
@@ -482,7 +487,9 @@ function deferredInit() {
             } else {
                 totalSingle = 0;
             }
-            if ($sum.length) { $sum.text(`TOTAL KOIN: ${totalSingle}`); $sum.css('margin-left','auto'); }
+            $sum.text(`TOTAL KOIN: ${totalSingle}`);
+            $right.append($sum);
+            $wrap.append($right);
             $wrap.off('change.scf').on('change.scf','label.sc-cex input, label.sc-pair input',function(){
                 const prev = getFilterChain(chain);
                 const prevC = (prev.cex||[]).map(String);
