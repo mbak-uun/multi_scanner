@@ -603,9 +603,11 @@ function deferredInit() {
         if (config.run === 'NO') {
             $start.prop('disabled', false).text('START').removeClass('uk-button-disabled').show();
             $stop.hide();
+            try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch(_) {}
         } else if (config.run === 'YES') {
             $start.prop('disabled', true).text('Running...').addClass('uk-button-disabled').show();
             $stop.prop('disabled', false).show();
+            try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch(_) {}
         }
     });
 
@@ -1349,9 +1351,11 @@ $(document).ready(function() {
         $('#stopSCAN').show().prop('disabled', false); // Ensure stop is usable
         $('#reload').prop('disabled', false); // Ensure reload is usable
         $('#infoAPP').html('⚠️ Proses sebelumnya tidak selesai. Tekan tombol <b>RESET PROSES</b> untuk memulai ulang.').show();
+        try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch(_) {}
     } else {
         $('#startSCAN').prop('disabled', false).text('Start').removeClass('uk-button-disabled');
         $('#stopSCAN').hide();
+        try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch(_) {}
     }
 
     const isDark = !!appStateInit.darkMode;

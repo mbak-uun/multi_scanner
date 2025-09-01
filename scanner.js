@@ -55,6 +55,19 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     // Keep user's search query intact; do not reset searchInput here.
     // Clear previous signals (container uses <div id="sinyal...">)
     $('#sinyal-container [id^="sinyal"]').empty();
+    // Reset all DEX cells in the target table back to the default state (DEX NAME [MODAL] + lock)
+    try {
+        const selector = `td[id^="${tableBodyId}_"]`;
+        document.querySelectorAll(selector).forEach(cell => {
+            const strong = cell.querySelector('strong');
+            if (strong) {
+                const header = strong.outerHTML;
+                cell.innerHTML = `${header}<br><span class="uk-text-muted" style="font-size: 18px;">🔒</span>`;
+                cell.style.backgroundColor = '';
+            }
+        });
+    } catch (_) {}
+    try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch(_) {}
     form_off();
     $("#autoScrollCheckbox").show().prop('disabled', false);
     $("#stopSCAN").show().prop('disabled', false);
@@ -359,6 +372,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         $("#stopSCAN").hide().prop("disabled", true);
         $('#startSCAN').prop('disabled', false).text('Start').removeClass('uk-button-disabled');
         $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle, .edit-token-button").css("pointer-events", "auto").css("opacity", "1");
+        try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch(_) {}
         try { $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 }); } catch(_) {}
         setAppState({ run: 'NO' });
     }

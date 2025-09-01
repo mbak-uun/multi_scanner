@@ -700,7 +700,9 @@ function generateDexLink(dex, chainName, codeChain, NameToken, sc_input, NamePai
         const builder = CONFIG_DEXS[dexKey].builder;
         return builder({
             chainName: chainName,
-            codeChain: codeChain,
+            // Provide both to satisfy different builder signatures
+            codeChain: codeChain,    // some builders expect codeChain
+            chainCode: codeChain,    // others used chainCode
             tokenAddress: sc_input,
             pairAddress: sc_output,
             NameToken: NameToken,
@@ -731,4 +733,32 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), wait);
     };
+}
+
+// =============================================================
+// UI GATING WHILE SCANNING
+// Disable most interactions while scan is running; allow Reload + Theme
+// =============================================================
+function setScanUIGating(isRunning) {
+    try {
+        const $allToolbar = $('.header-card a, .header-card .icon');
+        if (isRunning) {
+            // Dim and disable all toolbar actions
+            $allToolbar.css({ pointerEvents: 'none', opacity: 0.4 });
+            // Allow only reload + dark mode toggle
+            $('#reload, #darkModeToggle').css({ pointerEvents: 'auto', opacity: 1 });
+            // Disable scanner config controls and filter card inputs
+            $('#scanner-config').find('input, select, button, textarea').prop('disabled', true);
+            $('#filter-card').find('input, select, button, textarea').prop('disabled', true);
+            // Some extra clickable items in page
+            $('.sort-toggle, .edit-token-button, #chain-links-container a').css({ pointerEvents: 'none', opacity: 0.4 });
+        } else {
+            // Re-enable toolbar
+            $allToolbar.css({ pointerEvents: '', opacity: '' });
+            // Reset controls (actual availability will be enforced by applyControlsFor)
+            $('#scanner-config').find('input, select, button, textarea').prop('disabled', false);
+            $('#filter-card').find('input, select, button, textarea').prop('disabled', false);
+            $('.sort-toggle, .edit-token-button, #chain-links-container a').css({ pointerEvents: '', opacity: '' });
+        }
+    } catch (_) { /* noop */ }
 }
