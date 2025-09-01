@@ -58,6 +58,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     $("#autoScrollCheckbox").show().prop('disabled', false);
     $("#stopSCAN").show().prop('disabled', false);
     $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container,.sort-toggle, .edit-token-button').css({ 'pointer-events': 'none', 'opacity': '0.4' });
+    // Disable all toolbar actions during scanning, except Reload and Dark Mode toggle
+    try {
+        const $allToolbar = $('.header-card a, .header-card .icon');
+        $allToolbar.css({ pointerEvents: 'none', opacity: 0.4 });
+        $('#reload, #darkModeToggle').css({ pointerEvents: 'auto', opacity: 1 });
+    } catch(_) {}
     $('.statusCheckbox').css({ 'pointer-events': 'auto', 'opacity': '1' }).prop('disabled', false);
 
     sendStatusTELE(ConfigScan.nickname, 'ONLINE');
@@ -335,6 +341,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         $("#stopSCAN").hide().prop("disabled", true);
         $('#startSCAN').prop('disabled', false).text('Start').removeClass('uk-button-disabled');
         $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle, .edit-token-button").css("pointer-events", "auto").css("opacity", "1");
+        try { $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 }); } catch(_) {}
         setAppState({ run: 'NO' });
     }
 

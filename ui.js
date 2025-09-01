@@ -109,7 +109,7 @@ function applyControlsFor(state) {
         // Disable khusus tombol Update Wallet CEX sampai ada token tersimpan
         try { $('#UpdateWalletCEX').css({ opacity: '0.5', pointerEvents: 'none' }).prop('disabled', true); } catch(_) {}
         // Info
-        $('#infoAPP').html('⚠️ Tambahkan / Import <b>DATA TOKEN</b> terlebih dahulu.').show();
+        $('#infoAPP').html('⚠️ Tambahkan / Import / Sinkronisasi <b>DATA KOIN</b> terlebih dahulu.').show();
     } else {
         $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> & <b>DATA KOIN</b> terlebih dahulu.').show();
         $settingsIcon.addClass('cta-settings').attr('title','Klik untuk membuka Pengaturan');

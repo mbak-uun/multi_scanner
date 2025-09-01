@@ -256,7 +256,7 @@ function bootApp() {
         // Populate settings form when auto-shown and ensure it's enabled
         try { renderSettingsForm(); } catch(_) {}
         $('#form-setting-app').show();
-        $('#filter-card, #scanner-config, #single-chain-view, #token-management').hide();
+        $('#filter-card, #scanner-config, #single-chain-view, #token-management, #iframe-container').hide();
         try { $('#dataTableBody').closest('.uk-overflow-auto').hide(); } catch(_) {}
         try { document.getElementById('form-setting-app').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
         // Disable everything except settings form controls
@@ -277,7 +277,7 @@ function bootApp() {
     } else {
         if (window.toastr) {
             if (state === 'MISSING_SETTINGS') toastr.warning('Lengkapi SETTING terlebih dahulu');
-            else if (state === 'MISSING_TOKENS') toastr.warning('Import DATA TOKEN terlebih dahulu');
+            else if (state === 'MISSING_TOKENS') toastr.warning('Import/Sinkronisasi KOIN terlebih dahulu');
             else toastr.warning('Lengkapi SETTING & TOKEN');
         }
     }
@@ -352,12 +352,13 @@ function deferredInit() {
     // Build unified filter card based on mode
     function getMode() { const m = getAppMode(); return { mode: m.type === 'single' ? 'single' : 'multi', chain: m.chain }; }
 
-    function chipHtml(cls, id, label, color, count, checked, dataVal) {
+    function chipHtml(cls, id, label, color, count, checked, dataVal, disabled=false) {
         const badge = typeof count==='number' ? ` <span style="font-weight:bolder;">[${count}]</span>` : '';
         const borderColor = checked ? 'var(--theme-accent)' : '#ddd';
         const dval = (typeof dataVal !== 'undefined' && dataVal !== null) ? dataVal : label;
-        return `<label class="uk-text-small ${cls}" data-val="${dval}" style="display:inline-flex;align-items:center;gap:6px;padding:2px 6px;border:1px solid ${borderColor};border-radius:6px;background:#fafafa;cursor:pointer;">
-            <input type="checkbox" class="uk-checkbox" id="${id}" ${checked?'checked':''}>
+        const styleDis = disabled ? 'opacity:0.5; pointer-events:none;' : '';
+        return `<label class="uk-text-small ${cls}" data-val="${dval}" style="display:inline-flex;align-items:center;gap:6px;padding:2px 6px;border:1px solid ${borderColor};border-radius:6px;background:#fafafa;cursor:pointer;${styleDis}">
+            <input type="checkbox" class="uk-checkbox" id="${id}" ${checked && !disabled ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
             <span style="${color?`color:${color};`:''}font-weight:bolder;">${label}</span>${badge}
         </label>`;
     }
@@ -406,13 +407,14 @@ function deferredInit() {
             Object.keys(CONFIG_CHAINS||{}).forEach(k=>{
                 const short=(CONFIG_CHAINS[k].Nama_Pendek||k.substr(0,3)).toUpperCase();
                 const id=`fc-chain-${k}`; const cnt=byChain[k]||0;
-                const checked = chainsSel.includes(k.toLowerCase());
-                $secChain.append(chipHtml('fc-chain',id,short,CONFIG_CHAINS[k].WARNA,cnt,checked, k.toLowerCase()));
+                const disabled = cnt === 0;
+                const checked = !disabled && chainsSel.includes(k.toLowerCase());
+                $secChain.append(chipHtml('fc-chain',id,short,CONFIG_CHAINS[k].WARNA,cnt,checked, k.toLowerCase(), disabled));
             });
             const $secCex = $('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><b>EXCH:</b></div>');
             Object.keys(CONFIG_CEX||{}).forEach(cx=>{
-                const id=`fc-cex-${cx}`; const cnt=byCex[cx]||0; const checked=cexSel.includes(cx.toUpperCase());
-                $secCex.append(chipHtml('fc-cex',id,cx,CONFIG_CEX[cx].WARNA,cnt,checked, cx));
+                const id=`fc-cex-${cx}`; const cnt=byCex[cx]||0; const disabled = cnt === 0; const checked=!disabled && cexSel.includes(cx.toUpperCase());
+                $secCex.append(chipHtml('fc-cex',id,cx,CONFIG_CEX[cx].WARNA,cnt,checked, cx, disabled));
             });
             if ($headLabels.length)
             $wrap.append($secChain).append($('<div class=\"uk-text-muted\">|</div>')).append($secCex);
@@ -452,6 +454,8 @@ function deferredInit() {
                 const msg = parts.length ? parts.join(' | ') : `Filter MULTI diperbarui: CHAIN=${chains.length}, CEX=${cex.length}`;
                 try { toastr.info(msg); } catch(_){ }
 
+                // Clear search when filter changes
+                try { $('#searchInput').val(''); } catch(_){}
                 refreshTokensTable();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -471,12 +475,12 @@ function deferredInit() {
             const $secCex=$('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><b>EXCH:</b></div>');
             const relevantCexs = (CONFIG_CHAINS[chain] && CONFIG_CHAINS[chain].WALLET_CEX) ? Object.keys(CONFIG_CHAINS[chain].WALLET_CEX) : [];
             relevantCexs.forEach(cx=>{
-                const id=`sc-cex-${cx}`; const cnt=byCex[cx]||0; const checked=cexSel.includes(cx);
-                $secCex.append(chipHtml('sc-cex',id,cx,(CONFIG_CEX[cx] || {}).WARNA,cnt,checked));
+                const id=`sc-cex-${cx}`; const cnt=byCex[cx]||0; const disabled = cnt===0; const checked=!disabled && cexSel.includes(cx);
+                $secCex.append(chipHtml('sc-cex',id,cx,(CONFIG_CEX[cx] || {}).WARNA,cnt,checked, undefined, disabled));
             });
             const $secPair=$('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><b>PAIR:</b></div>');
             const pairs=Array.from(new Set([...Object.keys(pairDefs),'NON']));
-            pairs.forEach(p=>{ const id=`sc-pair-${p}`; const cnt=byPair[p]||0; const checked=pairSel.includes(p); $secPair.append(chipHtml('sc-pair',id,p,'',cnt,checked)); });
+            pairs.forEach(p=>{ const id=`sc-pair-${p}`; const cnt=byPair[p]||0; const disabled=cnt===0; const checked=!disabled && pairSel.includes(p); $secPair.append(chipHtml('sc-pair',id,p,'',cnt,checked, undefined, disabled)); });
             if ($headLabels.length)
             $wrap.append($secCex).append($('<div class=\"uk-text-muted\">|</div>')).append($secPair);
             let totalSingle = 0;
@@ -490,6 +494,16 @@ function deferredInit() {
             $sum.text(`TOTAL KOIN: ${totalSingle}`);
             $right.append($sum);
             $wrap.append($right);
+            // CTA styling for per-chain when no tokens exist at all (flat source is empty)
+            try {
+                const hasAnyToken = Array.isArray(flat) && flat.length > 0;
+                const $sync = $('#sync-tokens-btn');
+                if (!hasAnyToken) {
+                    $sync.addClass('cta-sync').attr('title','Klik untuk SYNC data koin');
+                } else {
+                    $sync.removeClass('cta-sync');
+                }
+            } catch(_) {}
             $wrap.off('change.scf').on('change.scf','label.sc-cex input, label.sc-pair input',function(){
                 const prev = getFilterChain(chain);
                 const prevC = (prev.cex||[]).map(String);
@@ -512,6 +526,8 @@ function deferredInit() {
                 const label = String(chain).toUpperCase();
                 const msg = parts.length ? `[${label}] ${parts.join(' | ')}` : `[${label}] Filter diperbarui: CEX=${c.length}, PAIR=${p.length}`;
                 try { toastr.info(msg); } catch(_){ }
+                // Clear search when filter changes
+                try { $('#searchInput').val(''); } catch(_){}
                 loadAndDisplaySingleChainTokens();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -726,7 +742,9 @@ function deferredInit() {
     });
 
     $("#SettingConfig").on("click", function () {
-        $('#filter-card, #scanner-config, #single-chain-view, #token-management').hide();
+        // Hide all other sections to prevent stacking when opening Settings
+        $('#filter-card, #scanner-config, #single-chain-view, #token-management, #iframe-container, #sinyal-container, #header-table').hide();
+        try { $('#dataTableBody').closest('.uk-overflow-auto').hide(); } catch(_) {}
         $('#form-setting-app').show();
         try { document.getElementById('form-setting-app').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
         renderSettingsForm();
@@ -734,9 +752,11 @@ function deferredInit() {
 
     $('#ManajemenKoin').on('click', function(e){
       e.preventDefault();
-      $('#scanner-config, #sinyal-container, #header-table').hide();
+      // Hide all other views to avoid stacking with manager UI
+      $('#scanner-config, #filter-card, #sinyal-container, #header-table').hide();
       $('#dataTableBody').closest('.uk-overflow-auto').hide();
       $('#iframe-container').hide();
+      $('#form-setting-app').hide();
       $('#single-chain-view').hide();
       $('#token-management').show();
       renderTokenManagementList();
@@ -1271,10 +1291,8 @@ function deferredInit() {
         try { setLastAction(`SINKRONISASI KOIN ${chainKey.toUpperCase()}`); } catch(_) {}
         toastr.success(`Saved ${selectedTokens.length} tokens for ${activeSingleChainKey}.`);
         UIkit.modal('#sync-modal').hide();
-        //location.reload();
-        // Reload table and filter card summary so user sees updated totals
-        try { loadAndDisplaySingleChainTokens(); } catch(e) { console.warn(e); }
-        try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(e) { console.warn(e); }
+        // Full reload to ensure a clean state and updated filters
+        location.reload();
     });
 
     // Sync modal search + filter handlers

@@ -354,7 +354,6 @@ function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
         volumesSellToken.map(data => renderVolume(data, 'uk-text-danger')).join('')
     );
 }
-
 function DisplayPNL(data) {
     const {
         profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype,
@@ -371,14 +370,34 @@ function DisplayPNL(data) {
     const buyLink = urlsCEXToken.tradeToken;
     const sellLink = urlsCEXToken.tradePair;
 
+    // === Harga BUY/SELL (pakai class uikit) ===
     let buyHtml, sellHtml;
     if (trx === 'TokentoPair') {
-        buyHtml = `<a href="${buyLink}" target="_blank" rel="noopener noreferrer"><label title="${cex} BUY: USDT->${Name_in}"> ${formatPrice(priceBuyToken_CEX)}</label></a>`;
-        sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer"><label title="${cex} SELL: ${Name_out}->USDT"> ${formatPrice(priceSellPair_CEX)}</label></a>`;
+        buyHtml  = `<a href="${buyLink}" target="_blank" rel="noopener noreferrer">
+                      <label class="uk-text-success" title="${cex} BUY: USDT->${Name_in}">
+                        ${formatPrice(priceBuyToken_CEX)}
+                      </label>
+                    </a>`;
+        sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer">
+                      <label class="uk-text-danger" title="${cex} SELL: ${Name_out}->USDT">
+                        ${formatPrice(priceSellPair_CEX)}
+                      </label>
+                    </a>`;
     } else {
-        buyHtml = `<a href="${buyLink}" target="_blank" rel="noopener noreferrer"><label title="${cex} BUY: USDT->${Name_out}"> ${formatPrice(priceBuyPair_CEX)}</label></a>`;
-        sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer"><label title="${cex} SELL: ${Name_in}->USDT"> ${formatPrice(priceSellToken_CEX)}</label></a>`;
+        buyHtml  = `<a href="${buyLink}" target="_blank" rel="noopener noreferrer">
+                      <label class="uk-text-success" title="${cex} BUY: USDT->${Name_out}">
+                        ${formatPrice(priceBuyPair_CEX)}
+                      </label>
+                    </a>`;
+        sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer">
+                      <label class="uk-text-danger" title="${cex} SELL: ${Name_in}->USDT">
+                        ${formatPrice(priceSellToken_CEX)}
+                      </label>
+                    </a>`;
     }
+
+    // === Swap pakai warna primer UIkit ===
+    const swapHtmlColored = `<span class="uk-text-primary uk-text-bold">${swapHtml}</span>`;
 
     const filterPNLValue = (typeof getPNLFilter === 'function') ? getPNLFilter() : (parseFloat(SavedSettingData?.filterPNL) || 0);
     const nickname = SavedSettingData?.nickname || '';
@@ -390,6 +409,9 @@ function DisplayPNL(data) {
     const passPNL = (filterPNLValue === 0 && (totalValue > totalModal)) || ((totalValue - totalModal) > filterPNLValue) || (pnl > feeAll);
     const isHighlight = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
 
+    const modeNow = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+    const isSingleMode = String(modeNow.type).toLowerCase() === 'single';
+
     let resultHtml;
     if (isHighlight) {
         mainCell.style.cssText = "background-color:#94fa95!important;font-weight:bolder!important;color:black!important;vertical-align:middle!important;text-align:center!important;";
@@ -397,13 +419,30 @@ function DisplayPNL(data) {
         toastr.success(sinyals);
 
         let htmlFee = (trx === "TokentoPair")
-            ? `<span style="color:#0f04e2!important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.withdrawUrl,'WD')}<br/>`
-            : `<span style="color:#0f04e2!important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.depositUrl,'DP')}<br/>`;
-        resultHtml = `${htmlFee}<span style="color:#d20000;">All: ${feeAll.toFixed(2)}$</span><span style="color:#1e87f0;">SW: ${FeeSwap.toFixed(2)}$</span><br/><span style="color:#444;">GT: ${totalGet.toFixed(2)}$</span><span style="color:#444;">PNL: ${pnl.toFixed(2)}$</span><br/>`;
+            ? `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.withdrawUrl,'WD')}<br/>`
+            : `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.depositUrl,'DP')}<br/>`;
+
+        resultHtml =
+            `${htmlFee}
+             <span class="uk-text-danger">All: ${feeAll.toFixed(2)}$</span>
+             <span class="uk-text-danger">SW: ${FeeSwap.toFixed(2)}$</span><br/>
+             <span class="uk-text-success">GT: ${totalGet.toFixed(2)}$</span>
+             <span class="uk-text-dark">PNL: ${pnl.toFixed(2)}$</span><br/>`;
+
         InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix);
     } else {
         mainCell.style.cssText = "text-align: center; vertical-align: middle;";
-        resultHtml = `<span style="color:black;" title="FEE WD CEX">FeeWD : ${FeeWD.toFixed(2)}$</span><br/><span class="uk-text-danger" title="FEE ALL">ALL:${feeAll.toFixed(2)}$</span><span class="uk-text-primary" title="FEE SWAP"> ${FeeSwap.toFixed(2)}$</span><br/><span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span><span class="uk-text-warning" title="GET NETTO / PNL">${pnl.toFixed(2)}$</span>`;
+        const pnlSpan = isSingleMode
+            ? `<span class="uk-text-dark" title="GET NETTO / PNL">${pnl.toFixed(2)}$</span>`
+            : `<span class="uk-text-dark" title="GET NETTO / PNL">${pnl.toFixed(2)}$</span>`;
+
+        resultHtml =
+            `<span class="uk-text-danger" title="FEE WD CEX">FeeWD : ${FeeWD.toFixed(2)}$</span><br/>
+             <span class="uk-text-danger" title="FEE ALL">ALL:${feeAll.toFixed(2)}$</span>
+             <span class="uk-text-danger" title="FEE SWAP"> ${FeeSwap.toFixed(2)}$</span><br/>
+             <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
+             ${pnlSpan}`;
+
         if (pnl > feeAll) {
             InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix);
         }
@@ -411,21 +450,17 @@ function DisplayPNL(data) {
 
     const dexNameAndModal = mainCell.querySelector('strong')?.outerHTML || '';
 
+    const modeNow3 = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+    const isSingleMode3 = String(modeNow3.type).toLowerCase() === 'single';
+    const resultWrapClass = isSingleMode3 ? 'uk-text-dark' : 'uk-text-primary';
+
     mainCell.innerHTML = `
         ${dexNameAndModal}<br>
         <span class="buy">${buyHtml}</span><br>
-        <span class="uk-text-primary uk-text-bolder">${swapHtml}</span><br>
+        ${swapHtmlColored}<br>
         <span class="sell">${sellHtml}</span><br>
         <hr class="uk-divider-small uk-margin-remove">
-        <span class="uk-text-primary">${resultHtml}</span>`;
-
-    if (pnl > 0.25) {
-        const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
-        const priceBUY = (direction === 'cex_to_dex') ? priceBuyToken_CEX : priceSellToken_CEX;
-        const priceSELL = (direction === 'cex_to_dex') ? priceSellPair_CEX : priceBuyPair_CEX;
-        const tokenData = { symbol: Name_in, pairSymbol: Name_out, contractAddress: sc_input, pairContractAddress: sc_output, chain: nameChain };
-        MultisendMessage(cex, dextype.toUpperCase(), tokenData, Modal, pnl, priceBUY, priceSELL, FeeSwap, FeeWD, feeAll, nickname, direction);
-    }
+        <span class="${resultWrapClass}">${resultHtml}</span>`;
 }
 
 function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix) {
@@ -436,9 +471,12 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     const warnaCEX = getWarnaCEX(cex);
     const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
     const baseId = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
-    const highlightStyle = (Number(PNL) > filterPNLValue) ? "background-color:#acf9eea6; font-weight:bolder;" : "";
+    const highlightStyle = (Number(PNL) > filterPNLValue) ? "background-color:#94fa95; font-weight:bolder;" : "";
 
-    const sLink = `<div><a href="#${idPrefix}${baseId}" class="buy" style="text-decoration:none; font-size:12px;"><span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-left:4px; margin-top:6px;">🔸 ${String(cex).slice(0,3).toUpperCase()}X<span class="uk-text-dark">:${modal}</span> <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span> <span style="color:${warnaChain};">[${chainShort}]</span>: <span class="uk-text-warning">${Number(PNL).toFixed(2)}$</span></span></a></div>`;
+    const modeNow2 = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+    const isSingleMode2 = String(modeNow2.type).toLowerCase() === 'single';
+    const chainPart = isSingleMode2 ? '' : ` <span style=\"color:${warnaChain};\">[${chainShort}]</span>`;
+    const sLink = `<div><a href="#${idPrefix}${baseId}" class="buy" style="text-decoration:none; font-size:12px;"><span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-left:4px; margin-top:6px;">🔸 ${String(cex).slice(0,3).toUpperCase()}X<span class="uk-text-dark">:${modal}</span> <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}: <span class="uk-text-dark">${Number(PNL).toFixed(2)}$</span></span></a></div>`;
 
     $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
 

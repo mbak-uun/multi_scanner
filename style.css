@@ -110,6 +110,16 @@ a:hover, .uk-link:hover {
     animation: pulse-cta 1.2s infinite;
 }
 
+.cta-sync {
+    background: #ffebee !important; /* light red */
+    border: 2px solid #e53935 !important;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 0 0 3px rgba(229,57,53,0.2);
+    transform: scale(1.35) !important;
+    animation: pulse-cta 1.2s infinite;
+}
+
 @keyframes pulse-cta {
     0% { box-shadow: 0 0 0 3px rgba(229,57,53,0.2); }
     50% { box-shadow: 0 0 0 6px rgba(229,57,53,0.35); }
