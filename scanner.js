@@ -353,8 +353,6 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         }
 
         updateProgress(tokensToProcess.length, tokensToProcess.length, startTime, 'SELESAI');
-        // Clear signals after finishing to avoid stacking on next scan
-        try { $('#sinyal-container [id^="sinyal"]').empty(); } catch(_) {}
         isScanRunning = false;
         cancelAnimationFrame(animationFrameId);
         form_on();
