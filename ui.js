@@ -11,55 +11,110 @@ function applyControlsFor(state) {
     const $start  = $('#startSCAN');
     const $stop   = $('#stopSCAN');
     const $import = $('#uploadJSON');
-    const $export = $('a[onclick="downloadTokenScannerCSV()"]');
+    const $export = $('a[onclick="downloadTokenScannerCSV()"], #btnExportTokens');
     const $settingsIcon = $('#SettingConfig');
-    
+    const $toolIcons = $('.header-card .icon');
+    const $chainLinks = $('#chain-links-container a, #chain-links-container .chain-link');
+    const $filterControls = $('#filter-card').find('input, .toggle-radio, button, label');
+    const $sortToggles = $('.sort-toggle');
+
+    function toggleFilterControls(enabled){
+        try {
+            // disable actual input elements
+            $('#filter-card').find('input, button, select, textarea').prop('disabled', !enabled);
+            // and neutralize pointer events on label-like chips/toggles
+            $filterControls.css('pointer-events', enabled ? '' : 'none')
+                           .css('opacity', enabled ? '' : '0.5');
+        } catch(_) {}
+    }
+
     function setDisabled($els, disabled) {
         $els.prop('disabled', disabled)
             .css('opacity', disabled ? '0.5' : '')
             .css('pointer-events', disabled ? 'none' : '');
     }
+    function setClickableEnabled($els, enabled) {
+        $els.css('opacity', enabled ? '' : '0.5')
+            .css('pointer-events', enabled ? '' : 'none');
+    }
     
     // lock everything by default
-    setDisabled($form.find('input, select, button'), true);
+    // Only lock scanner-config controls; settings form remains usable even when missing
+    setDisabled($('#scanner-config').find('input, select, button'), true);
     setDisabled($start.add($stop).add($export).add($import), true);
-    
+    setClickableEnabled($toolIcons.add($chainLinks), false);
+    setClickableEnabled($sortToggles, false);
+    toggleFilterControls(false);
+
     if (state === 'READY') {
-        setDisabled($form.find('input, select, button'), false);
+        try {
+            const fr = (typeof getFeatureReadiness === 'function') ? getFeatureReadiness() : null;
+            if (fr && fr.feature) {
+                $('[data-feature]').each(function(){
+                    const name = $(this).attr('data-feature');
+                    const enabled = !!fr.feature[name];
+                    setClickableEnabled($(this), enabled);
+                    if (this.tagName === 'BUTTON' || this.tagName === 'INPUT') {
+                        $(this).prop('disabled', !enabled);
+                    }
+                });
+            }
+        } catch(_) {}
+        setDisabled($('#scanner-config').find('input, select, button'), false);
         setDisabled($start.add($stop).add($export).add($import), false);
+        setClickableEnabled($toolIcons.add($chainLinks), true);
+        setClickableEnabled($sortToggles, true);
+        toggleFilterControls(true);
         // remove onboarding callouts
         $settingsIcon.removeClass('cta-settings').attr('title','CONFIG SCANNER');
         try { $('#sync-tokens-btn').removeClass('cta-highlight'); } catch(_){ }
         try { $('#ManajemenKoin').removeClass('cta-highlight'); } catch(_){ }
         try { $('#btnImportTokens, #btnExportTokens').removeClass('cta-settings cta-highlight'); } catch(_){ }
-    } else if (state === 'MISSING_SETTINGS') {
-        // More informative onboarding for new users
-        $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> terlebih dahulu. Klik ikon ⚙ di kanan atas.').show();
-        $settingsIcon.addClass('cta-settings').attr('title','Klik untuk membuka Pengaturan');
+        // Ensure Update Wallet CEX is enabled when tokens exist
+        try { $('#UpdateWalletCEX').css({ opacity: '', pointerEvents: '' }).prop('disabled', false); } catch(_) {}
+    } else if (state === 'MISSING_SETTINGS' || state === 'MISSING_BOTH') {
+        // Inform user and gate the UI strictly per requirement
+        $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> terlebih dahulu. Form pengaturan dibuka otomatis.').show();
+        // Disable all inputs globally then re-enable only the settings form controls
+        try {
+            $('input, select, textarea, button').prop('disabled', true);
+            $('#form-setting-app').find('input, select, textarea, button').prop('disabled', false);
+        } catch(_) {}
+
+        // Disable all toolbar icons by default
+        setClickableEnabled($toolIcons.add($chainLinks), false);
+        setClickableEnabled($sortToggles, false);
+        toggleFilterControls(false);
+
+        // Enable only: assets, proxy, memory, settings, reload, and dark mode toggle
+        try {
+            const allow = $('[data-feature="assets"], [data-feature="proxy"], [data-feature="memory"], [data-feature="settings"], [data-feature="reload"]');
+            setClickableEnabled(allow, true);
+            allow.find('.icon').css({ opacity: '', pointerEvents: '' });
+            $('#darkModeToggle').css({ opacity: '', pointerEvents: '' });
+            // Explicitly ensure #SettingConfig and #reload are not dimmed
+            $('#SettingConfig, #reload').css({ opacity: '', pointerEvents: '' }).prop('disabled', false);
+            // Explicitly disable Manajemen Koin menu
+            $('#ManajemenKoin,#multichain_scanner').css({ opacity: '0.5', pointerEvents: 'none' }).prop('disabled', true);
+        } catch(_) {}
     } else if (state === 'MISSING_TOKENS') {
         setDisabled($import, false);
-        // Tailor message by mode (multi vs single)
-        try {
-            const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
-            if (m.type === 'single') {
-                $('#infoAPP').html('⚠️ <b>SYNC TOKEN</b> terlebih dahulu untuk chain ini. Gunakan tombol Sinkronisasi.').show();
-                // Try highlight sync button if present
-                setTimeout(() => { try { $('#sync-tokens-btn').addClass('cta-highlight'); } catch(_){} }, 50);
-                // Also highlight import/export for guided action
-                try { $('#btnImportTokens, #btnExportTokens').addClass('cta-settings'); } catch(_){ }
-            } else {
-                $('#infoAPP').html('⚠️ Tambahkan <b>DATA TOKEN</b> di Manajemen Koin atau Import CSV.').show();
-                // Highlight manage coins entry if present
-                try { $('#ManajemenKoin').addClass('cta-highlight'); } catch(_){ }
-                // Also highlight import/export buttons in filter card
-                try { $('#btnImportTokens, #btnExportTokens').addClass('cta-settings'); } catch(_){ }
-            }
-        } catch(_) {
-            $('#infoAPP').html('⚠️ Import / Tambahkan <b>DATA TOKEN</b> terlebih dahulu.').show();
-        }
+        // Settings sudah ada: semua toolbar bisa diklik, kecuali Update Wallet CEX
+        setClickableEnabled($toolIcons.add($chainLinks), true);
+        $toolIcons.css({ opacity: '', pointerEvents: '' });
+        // Tetap nonaktifkan kontrol filter karena tidak ada data
+        toggleFilterControls(false);
+        // Nonaktifkan sort toggle sampai ada data token
+        setClickableEnabled($sortToggles, false);
+        // Disable khusus tombol Update Wallet CEX sampai ada token tersimpan
+        try { $('#UpdateWalletCEX').css({ opacity: '0.5', pointerEvents: 'none' }).prop('disabled', true); } catch(_) {}
+        // Info
+        $('#infoAPP').html('⚠️ Tambahkan / Import <b>DATA TOKEN</b> terlebih dahulu.').show();
     } else {
         $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> & <b>DATA KOIN</b> terlebih dahulu.').show();
         $settingsIcon.addClass('cta-settings').attr('title','Klik untuk membuka Pengaturan');
+        setClickableEnabled($toolIcons.not($settingsIcon), false);
+        setClickableEnabled($settingsIcon, true);
     }
 }
 

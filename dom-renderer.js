@@ -226,10 +226,10 @@ function renderTokenManagementList() {
     const currentQ = ($('#searchInput').length ? ($('#searchInput').val() || '') : '');
     const controls = `
         <button id="btnNewToken" class="uk-button uk-button-primary uk-button-small"><span uk-icon="plus-circle"></span> Add KOIN</button>
-        <button id="btnExportTokens" class="uk-button uk-button-small uk-button-secondary" title="Export CSV">
+        <button id="btnExportTokens" data-feature="export" class="uk-button uk-button-small uk-button-secondary" title="Export CSV">
           <span uk-icon="download"></span> Export
         </button>
-        <button id="btnImportTokens" class="uk-button uk-button-small uk-button-danger" title="Import CSV">
+        <button id="btnImportTokens" data-feature="import" class="uk-button uk-button-small uk-button-danger" title="Import CSV">
          <span uk-icon="upload"></span> Import
         </button>
         <input type="file" id="uploadJSON" accept=".csv,text/csv" style="display:none;" onchange="uploadTokenScannerCSV(event)">

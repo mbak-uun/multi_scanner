@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>???</title>
+    <title>MULTISCANNER PLUS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/js/uikit.min.js"></script>
@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.0/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script> 
     
-    <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/16769/16769999.png">
+    <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/256/17014/17014994.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -47,20 +47,22 @@
                 <!-- Kanan: Toolbar icon -->
                 <div class="uk-width-auto@s uk-width-1-1">
                     <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s" style="gap: 6px;">                        
-                         <a href="index.html?chain=all" ><img class="icon" title="MULTISCANNER" width="24px" src="https://cdn-icons-png.flaticon.com/512/8897/8897593.png" /></a>
+                         <a href="index.html?chain=all" id="multichain_scanner" ><img class="icon" title="SCANNER MUTLTICHAIN" width="24px" src="https://cdn-icons-png.flaticon.com/512/8897/8897593.png" /></a>
                         <span id="chain-links-container"></span>
-                             <img class="icon" id="reload" title="RESET PROSES" width="24px" src="https://cdn-icons-png.flaticon.com/256/10264/10264169.png" />
-                        <a href="modal.html" class="iframe-modal-trigger"><img class="icon" title="MANAJEMEN ASSET" width="24px" src="https://cdn-icons-png.flaticon.com/512/4626/4626344.png" /></a>
-                        <img class="icon" id="UpdateWalletCEX" title="CHECK EXCHANGER" width="24px"  src="https://cdn-icons-png.flaticon.com/512/2488/2488826.png"  />
-                         <img class="icon" id="SettingConfig" title="CONFIG SCANNER" width="24px" src="https://cdn-icons-png.flaticon.com/512/771/771203.png" />
- 
-                         <a href="#" target="_blank" id="ManajemenKoin">
+                         
+                         <a href="#" target="_blank" id="ManajemenKoin" data-feature="manage">
                             <img title="MANAJEMEN KOIN" class="icon"  src="https://cdn-icons-png.flaticon.com/512/8618/8618023.png" width="24px" />
                         </a>   
-                        
-                         <a href="https://cors-anywhere.herokuapp.com/corsdemo" class="iframe-modal-trigger"><img class="icon" title="BUKA AKSES" width="24px"  src="https://cdn-icons-png.flaticon.com/512/890/890162.png" /></a>
+                         <img class="icon" id="UpdateWalletCEX" data-feature="wallet" title="CHECK EXCHANGER" width="24px"  src="https://cdn-icons-png.flaticon.com/512/1969/1969111.png"  />
+
+                        <img class="icon" id="SettingConfig" data-feature="settings" title="CONFIG SCANNER" width="24px" src="https://cdn-icons-png.flaticon.com/512/771/771203.png" />
+                        <img class="icon" id="reload" data-feature="reload" title="RESET PROSES" width="24px" src="https://cdn-icons-png.flaticon.com/256/10264/10264169.png" />
+
+                         <a href="modal.html" class="iframe-modal-trigger" data-feature="assets"><img class="icon" title="MANAJEMEN ASSET" width="24px" src="https://cdn-icons-png.flaticon.com/512/4626/4626344.png" /></a>
+                       
+                         <a href="https://cors-anywhere.herokuapp.com/corsdemo" class="iframe-modal-trigger" data-feature="proxy"><img class="icon" title="BUKA AKSES" width="24px"  src="https://cdn-icons-png.flaticon.com/512/890/890162.png" /></a>
                          
-                         <a href="memory.html" class="iframe-modal-trigger">
+                         <a href="memory.html" class="iframe-modal-trigger" data-feature="memory">
                             <img title="MANAJEMEN MEMORY" class="icon" src="https://cdn-icons-png.flaticon.com/256/5004/5004238.png" width="24px" />
                         </a>
                         
@@ -128,8 +130,8 @@
 
                     <!-- Start/Stop Buttons -->
                     <div class="uk-button-group">
-                        <button type="button" id="startSCAN" class="uk-button uk-button-secondary uk-button-small">START</button>
-                        <button type="button" id="stopSCAN" style="display: none;"  class="uk-button uk-button-danger uk-button-small">STOP</button>
+                        <button type="button" id="startSCAN" data-feature="scan" class="uk-button uk-button-secondary uk-button-small">START</button>
+                        <button type="button" id="stopSCAN" data-feature="scan" style="display: none;"  class="uk-button uk-button-danger uk-button-small">STOP</button>
                     </div>
                 </form>
             </div>
@@ -178,7 +180,72 @@
         </table>
     </div>
     
-      <!-- SECTION: TOKEN MANAGEMENT (LIST) -->
+      <!-- SECTION -->
+    <section id="form-setting-app" class="uk-card uk-card-default uk-card-body uk-margin-small" style="display:none;">
+        <h3 class="uk-card-title">:: PENGATURAN APLIKASI</h3>
+        <form>
+            <div class="uk-grid-small" uk-grid>
+                <div class="uk-width-1-2">
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3>JEDA WAKTU (ms)</h3>
+                        <div id="cex-delay-group"></div>
+                        <hr>
+                        <div id="dex-delay-group"></div>
+                    </div>
+                </div>
+                <div class="uk-width-1-2">
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 style="text-align: center; margin: 12px 0px; color: #1317e1;">:: PENGATURAN SCANNER</h3>
+                        <label for="user">NICK NAME:</label>
+                        <input type="text" id="user" class="uk-input" required>
+
+                        <div class="uk-flex uk-flex-middle uk-margin">
+                            <div style="flex:1;">
+                                <label class="uk-text-danger">KOIN/GRUP :</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="7" name="koin-group"> 7</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="6" name="koin-group"> 6</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="5" checked name="koin-group"> 5</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="4" name="koin-group"> 4</label>
+                            </div>
+                            <div style="flex:1; margin-left: 24px;">
+                                <label class="uk-text-danger">TIME OUT:</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="3" name="waktu-tunggu" checked> NORMAL</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="2.5" name="waktu-tunggu"> MEDIUM</label>
+                                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="1.5" name="waktu-tunggu"> FAST</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="uk-text-warning">FILTER PNL ($)</label><br/>
+                            <input class="uk-input" type="number" id="inFilterPNL" value="1" name="filterpnl">
+                        </div>
+
+                        <div class="uk-flex uk-flex-middle uk-margin">
+                            <div style="flex:1; margin-right: 8px;">
+                                <label class="uk-text-danger">JEDA / GRUP (ms)</label><br>
+                                <input class="uk-input" id="jeda-time-group" type="number" value="1500" name="jeda-time-group">
+                            </div>
+                            <div style="flex:1;">
+                                <label class="uk-text-primary">JEDA / KOIN (ms)</label><br>
+                                <input class="uk-input" type="number" id="jeda-koin" value="500" name="jeda-koin">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="uk-text-danger">WALLET ADDRESS</label><br>
+                            <input class="uk-input" type="text" id="walletMeta" name="walletMeta">
+                        </div>
+
+                        <p class="uk-text-right uk-margin-top">
+                            <button type="button" id="btn-cancel-setting" class="uk-button uk-button-danger">CANCEL</button>
+                            <button type="button" id="btn-save-setting" class="uk-button uk-button-primary">SIMPAN</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+
     <section id="token-management" style="display: none;" >
        
         <!-- Statistik -->
@@ -203,8 +270,7 @@
     </section>
 
     <!-- SECTION: IFRAME CONTAINER -->
-    <section id="iframe-container" style="display: none; height: 85vh; padding: 10px;" class="uk-card uk-card-default uk-margin-small">
-        <h3 class="uk-card-title" id="iframe-title"></h3>
+    <section id="iframe-container" style="display: none; height: 85vh; padding: 10px;" class="uk-card uk-card-default uk-card-body uk-margin-small">
         <iframe id="iframe-content" src="" style="width: 100%; height: 100%; border: none;"></iframe>
     </section>
 
@@ -239,81 +305,6 @@
         </div>
     </section>
   
-</div>
-
-<!-- Modal UIKIT SETTING -->
-<div id="modal-setting" class="uk-modal-full" uk-modal>
-<div class="uk-modal-dialog">
-    <button class="uk-modal-close-full uk-close-large" type="button" uk-close></button>
-    <div class="uk-modal-header">
-    <h2 class="uk-modal-title">:: PENGATURAN APLIKASI</h2>
-    </div>
-    <div class="uk-modal-body">
-    <form>
-        <div class="uk-grid-small" uk-grid>
-        <div class="uk-width-1-2">
-            <!-- Kolom pertama -->
-            <div class="uk-card uk-card-default uk-card-body">
-                <h3>JEDA WAKTU (ms)</h3>
-                <div id="cex-delay-group"></div>
-                <hr>
-                <div id="dex-delay-group"></div>
-            </div>
-        </div>
-        <div class="uk-width-1-2">
-            <!-- Kolom kedua -->
-            <div class="uk-card uk-card-default uk-card-body">
-            <h3 style="text-align: center; margin: 12px 0px; color: #1317e1;">:: PENGATURAN SCANNER</h3>
-            <label for="user">NICK NAME:</label>
-            <input type="text" id="user" class="uk-input" required>
-
-            <div class="uk-flex uk-flex-middle uk-margin">
-                <div style="flex:1;">
-                <label for="jeda-time-group" class="uk-text-danger">KOIN/GRUP :</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="7" name="koin-group"> 7</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="6" name="koin-group"> 6</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="5" checked name="koin-group"> 5</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="4" name="koin-group"> 4</label>
-                </div>
-
-                <div style="flex:1; margin-left: 24px;">
-                <label for="speedScan" class="uk-text-danger">WAKTU TUNGGU:</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="3" name="waktu-tunggu"> NORMAL</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="2.5" name="waktu-tunggu"> MEDIUM</label>
-                <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="1.5" name="waktu-tunggu"> FAST</label>
-                </div>
-            </div>
-            <div>
-                <label class="uk-text-warning">FILTER PNL ($)</label><br/>
-                <input class="uk-input" type="number" id="inFilterPNL" value="1" name="filterpnl" >         
-            </div>
-
-            <div class="uk-flex uk-flex-middle uk-margin">
-                <div style="flex:1; margin-right: 8px;">
-                <label class="uk-text-danger">JEDA / GRUP (ms)</label><br>
-                <input class="uk-input" id="jeda-time-group" type="number" value="1500" name="jeda-time-group">
-                </div>
-                <div style="flex:1;">
-                <label class="uk-text-primary">JEDA / KOIN (ms)</label><br>
-                <input class="uk-input" type="number" id="jeda-koin" value="500" name="jeda-koin">
-                </div>
-            </div>
-
-            <div>
-                <label class="uk-text-danger">WALLET ADDRESS</label><br>
-                <input class="uk-input" type="text" id="walletMeta" name="walletMeta">
-            </div>
-
-            <p class="uk-text-right uk-margin-top">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Tutup</button>
-                <button type="button" id="btn-save-setting" class="uk-button uk-button-primary">SIMPAN</button>
-            </p>
-            </div>
-        </div>
-        </div>
-    </form>
-    </div>
-</div>
 </div>
 <!-- Modal UIKIT EDIT KOIN -->
  <div id="FormEditKoinModal" uk-modal>
@@ -503,10 +494,9 @@
 <script src="storage.js"></script>
 <script src="utils.js"></script>
 <script src="api.js"></script>
+<script src="main.js"></script>
+<script src="ui.js"></script>
 <script src="dom-renderer.js"></script>
 <script src="scanner.js"></script>
-<script src="ui.js"></script>
-<script src="main.js"></script>
-
 </body>
 </html>

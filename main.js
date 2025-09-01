@@ -186,6 +186,51 @@ function hasValidTokens() {
 }
 
 /**
+ * Renders the Settings form: generates CEX/DEX delay inputs and API key fields,
+ * and preloads saved values from localStorage.
+ */
+function renderSettingsForm() {
+    // Generate CEX delay inputs
+    const cexList = Object.keys(CONFIG_CEX || {});
+    let cexDelayHtml = '<h4>Jeda CEX</h4>';
+    cexList.forEach(cex => {
+        cexDelayHtml += `<div class=\"uk-flex uk-flex-middle uk-margin-small-bottom\"><label style=\"min-width:70px;\">${cex}</label><input type=\"number\" class=\"uk-input uk-form-small cex-delay-input\" data-cex=\"${cex}\" value=\"30\" style=\"width:80px; margin-left:8px;\" min=\"0\"></div>`;
+    });
+    $('#cex-delay-group').html(cexDelayHtml);
+
+    // Generate DEX delay inputs
+    const dexList = Object.keys(CONFIG_DEXS || {});
+    let dexDelayHtml = '<h4>Jeda DEX</h4>';
+    dexList.forEach(dex => {
+        dexDelayHtml += `<div class=\"uk-flex uk-flex-middle uk-margin-small-bottom\"><label style=\"min-width:70px;\">${dex.toUpperCase()}</label><input type=\"number\" class=\"uk-input uk-form-small dex-delay-input\" data-dex=\"${dex}\" value=\"100\" style=\"width:80px; margin-left:8px;\" min=\"0\"></div>`;
+    });
+    $('#dex-delay-group').html(dexDelayHtml);
+
+    // Load existing settings
+    const appSettings = getFromLocalStorage('SETTING_SCANNER') || {};
+    $('#user').val(appSettings.nickname || '');
+    $('#jeda-time-group').val(appSettings.jedaTimeGroup || 1500);
+    $('#jeda-koin').val(appSettings.jedaKoin || 500);
+    $('#walletMeta').val(appSettings.walletMeta || '');
+    $('#inFilterPNL').val(appSettings.filterPNL || 1);
+    $(`input[name=\"koin-group\"][value=\"${appSettings.scanPerKoin || 5}\"]`).prop('checked', true);
+    $(`input[name=\"waktu-tunggu\"][value=\"${appSettings.speedScan || 2}\"]`).prop('checked', true);
+
+    // Apply saved delay values
+    const modalCexs = appSettings.JedaCexs || {};
+    $('.cex-delay-input').each(function() {
+        const cex = $(this).data('cex');
+        if (modalCexs[cex] !== undefined) $(this).val(modalCexs[cex]);
+    });
+    const modalDexs = appSettings.JedaDexs || {};
+    $('.dex-delay-input').each(function() {
+        const dex = $(this).data('dex');
+        if (modalDexs[dex] !== undefined) $(this).val(modalDexs[dex]);
+    });
+
+}
+
+/**
  * Initializes the application on DOM content load.
  * Sets up controls based on readiness state.
  */
@@ -193,6 +238,28 @@ function bootApp() {
     const state = computeAppReadiness();
     try { applyThemeForMode(); } catch(_){}
     applyControlsFor(state);
+    // Show settings section automatically if settings are missing (including MISSING_BOTH)
+    const settingsMissing = !hasValidSettings();
+    if (settingsMissing) {
+        // Populate settings form when auto-shown and ensure it's enabled
+        try { renderSettingsForm(); } catch(_) {}
+        $('#form-setting-app').show();
+        $('#filter-card, #scanner-config, #single-chain-view, #token-management').hide();
+        try { $('#dataTableBody').closest('.uk-overflow-auto').hide(); } catch(_) {}
+        try { document.getElementById('form-setting-app').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
+        // Disable everything except settings form controls
+        try {
+            $('input, select, textarea, button').prop('disabled', true);
+            $('#form-setting-app').find('input, select, textarea, button').prop('disabled', false);
+            // On first run, prevent closing the form accidentally
+            $('#btn-cancel-setting').prop('disabled', true);
+        } catch(_) {}
+    } else {
+        $('#form-setting-app').hide();
+        // Restore primary sections
+        $('#filter-card, #scanner-config').show();
+        try { $('#dataTableBody').closest('.uk-overflow-auto').show(); } catch(_) {}
+    }
     if (state === 'READY') {
         try { cekDataAwal(); } catch (e) { console.error('cekDataAwal error:', e); }
     } else {
@@ -432,6 +499,16 @@ function deferredInit() {
                 renderFilterCard();
             });
         }
+
+        // Enforce disabled state for filter controls if tokens are missing
+        try {
+            const stateNow = computeAppReadiness();
+            if (stateNow === 'MISSING_TOKENS' || stateNow === 'MISSING_BOTH') {
+                const $fc = $('#filter-card');
+                $fc.find('input, button, select, textarea').prop('disabled', true);
+                $fc.find('label, .toggle-radio').css({ pointerEvents: 'none', opacity: 0.5 });
+            }
+        } catch(_) {}
     }
 
     renderFilterCard();
@@ -522,25 +599,12 @@ function deferredInit() {
             JedaDexs[$(this).data('dex')] = parseFloat($(this).val()) || 100;
         });
 
-        let api_keys = {};
-        $('.cex-api-key-input').each(function() {
-            const cex = $(this).data('cex');
-            if(!api_keys[cex]) api_keys[cex] = {};
-            api_keys[cex].ApiKey = $(this).val().trim();
-        });
-        $('.cex-api-secret-input').each(function() {
-            const cex = $(this).data('cex');
-            if(!api_keys[cex]) api_keys[cex] = {};
-            api_keys[cex].ApiSecret = $(this).val().trim();
-        });
-
         const settingData = {
             nickname, jedaTimeGroup, jedaKoin, filterPNL, walletMeta,
             scanPerKoin: parseInt(scanPerKoin, 10),
             speedScan: parseFloat(speedScan),
             JedaCexs,
             JedaDexs,
-            api_keys, // Save the API keys
             AllChains: Object.keys(CONFIG_CHAINS)
         };
 
@@ -550,9 +614,7 @@ function deferredInit() {
         location.reload();
     });
 
-    UIkit.util.on('#modal-setting', 'show', function () {
-        form_on();
-    });
+    // Deprecated modal handler removed; settings now inline
 
     // searchInput moved to filter card; handler defined below (global search)
 
@@ -577,72 +639,19 @@ function deferredInit() {
         stopScanner();
     });
 
+    // Cancel button in inline settings: hide form and restore main sections
+    $(document).on('click', '#btn-cancel-setting', function () {
+        $('#form-setting-app').hide();
+        $('#filter-card, #scanner-config').show();
+        // Re-apply gating for current readiness state
+        try { applyControlsFor(computeAppReadiness()); } catch(_) {}
+    });
+
     $("#SettingConfig").on("click", function () {
-        UIkit.modal("#modal-setting").show();
-
-        // Generate CEX delay inputs
-        const cexList = Object.keys(CONFIG_CEX || {});
-        let cexDelayHtml = '<h4>Jeda CEX</h4>';
-        cexList.forEach(cex => {
-            cexDelayHtml += `<div class="uk-flex uk-flex-middle uk-margin-small-bottom"><label style="min-width:70px;">${cex}</label><input type="number" class="uk-input uk-form-small cex-delay-input" data-cex="${cex}" value="30" style="width:80px; margin-left:8px;" min="0"></div>`;
-        });
-        $('#cex-delay-group').html(cexDelayHtml);
-
-        // Generate DEX delay inputs
-        const dexList = Object.keys(CONFIG_DEXS || {});
-        let dexDelayHtml = '<h4>Jeda DEX</h4>';
-        dexList.forEach(dex => {
-            dexDelayHtml += `<div class="uk-flex uk-flex-middle uk-margin-small-bottom"><label style="min-width:70px;">${dex.toUpperCase()}</label><input type="number" class="uk-input uk-form-small dex-delay-input" data-dex="${dex}" value="100" style="width:80px; margin-left:8px;" min="0"></div>`;
-        });
-        $('#dex-delay-group').html(dexDelayHtml);
-
-        // Generate CEX API Key inputs
-        let cexApiHtml = '';
-        cexList.forEach(cex => {
-            cexApiHtml += `<div>
-                <label class="uk-form-label uk-text-bold">${cex}</label>
-                <div class="uk-form-controls uk-margin-small-bottom">
-                    <input class="uk-input uk-form-small cex-api-key-input" data-cex="${cex}" type="text" placeholder="API Key">
-                </div>
-                <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small cex-api-secret-input" data-cex="${cex}" type="password" placeholder="API Secret">
-                </div>
-            </div><hr class="uk-divider-small">`;
-        });
-        $('#cex-api-keys-group').html(cexApiHtml);
-
-
-        // Load existing settings
-        let appSettings = getFromLocalStorage('SETTING_SCANNER') || {};
-        $('#user').val(appSettings.nickname || '');
-        $('#jeda-time-group').val(appSettings.jedaTimeGroup || 1500);
-        $('#jeda-koin').val(appSettings.jedaKoin || 500);
-        $('#walletMeta').val(appSettings.walletMeta || '');
-        $('#inFilterPNL').val(appSettings.filterPNL || 1);
-        $(`input[name="koin-group"][value="${appSettings.scanPerKoin || 5}"]`).prop('checked', true);
-        $(`input[name="waktu-tunggu"][value="${appSettings.speedScan || 2}"]`).prop('checked', true);
-
-        const modalCexs = appSettings.JedaCexs || {};
-        $('.cex-delay-input').each(function() {
-            const cex = $(this).data('cex');
-            if (modalCexs[cex] !== undefined) $(this).val(modalCexs[cex]);
-        });
-
-        const modalDexs = appSettings.JedaDexs || {};
-        $('.dex-delay-input').each(function() {
-            const dex = $(this).data('dex');
-            if (modalDexs[dex] !== undefined) $(this).val(modalDexs[dex]);
-        });
-
-        const apiKeys = appSettings.api_keys || {};
-        $('.cex-api-key-input').each(function() {
-            const cex = $(this).data('cex');
-            if (apiKeys[cex]?.ApiKey) $(this).val(apiKeys[cex].ApiKey);
-        });
-        $('.cex-api-secret-input').each(function() {
-            const cex = $(this).data('cex');
-            if (apiKeys[cex]?.ApiSecret) $(this).val(apiKeys[cex].ApiSecret);
-        });
+        $('#filter-card, #scanner-config, #single-chain-view, #token-management').hide();
+        $('#form-setting-app').show();
+        try { document.getElementById('form-setting-app').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
+        renderSettingsForm();
     });
 
     $('#ManajemenKoin').on('click', function(e){
@@ -889,7 +898,7 @@ function deferredInit() {
         //const viewTitle = $(this).find('img').attr('title') || 'Content';
 
         // Hide other views
-        $('#scanner-config, #sinyal-container, #header-table').hide();
+        $('#scanner-config, #sinyal-container, #header-table, #form-setting-app').hide();
         $('#dataTableBody').closest('.uk-overflow-auto').hide();
         $('#token-management').hide();
         $('#single-chain-view').hide();
@@ -1097,8 +1106,7 @@ $(document).ready(function() {
         $('body').removeClass('dark-mode uk-dark');
     }
 
-    $('title').text("MULTISCANNER");
-    $('#namachain').text("MULTISCANNER");
+    // $('#namachain').text("MULTISCANNER");
     $('#sinyal-container').css('color', "black");
     $('h4#daftar,h4#judulmanajemenkoin').css({ 'color': 'white', 'background': `linear-gradient(to right, #5c9513, #ffffff)`, 'padding-left': '7px', 'border-radius': '5px' });
 

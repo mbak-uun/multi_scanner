@@ -120,6 +120,44 @@ function setTokensChain(chain, list){
     saveToLocalStorage(`TOKEN_${String(chain).toUpperCase()}`, Array.isArray(list)? list: []);
 }
 
+// =================================================================================
+// FEATURE READINESS & GATING HELPERS
+// =================================================================================
+
+function getFeatureReadiness() {
+    const mode = getAppMode();
+    const settings = getFromLocalStorage('SETTING_SCANNER', {});
+    const hasSettings = !!(settings && typeof settings === 'object' && Object.keys(settings).length);
+    let hasTokensMulti = false;
+    let hasTokensChain = false;
+    try {
+        const multi = getTokensMulti();
+        hasTokensMulti = Array.isArray(multi) && multi.length > 0;
+    } catch(_) {}
+    try {
+        if (mode.type === 'single') {
+            const chainList = getTokensChain(mode.chain);
+            hasTokensChain = Array.isArray(chainList) && chainList.length > 0;
+        }
+    } catch(_) {}
+
+    const feature = {
+        settings: true,
+        scan: hasSettings && (mode.type === 'single' ? hasTokensChain : hasTokensMulti),
+        manage: hasSettings && (mode.type !== 'single'),
+        sync: hasSettings && (mode.type === 'single'),
+        import: hasSettings,
+        export: hasSettings && (mode.type === 'single' ? hasTokensChain : hasTokensMulti),
+        wallet: hasSettings && (hasTokensChain || hasTokensMulti),
+        assets: hasSettings,
+        memory: hasSettings,
+        proxy: true,
+        reload: true
+    };
+
+    return { mode, hasSettings, hasTokensMulti, hasTokensChain, feature };
+}
+
 /**
  * Apply theme color based on mode:
  * - multi: keep existing green accent
