@@ -98,11 +98,16 @@ function getFilterMulti() {
 }
 
 function setFilterMulti(val){
-    const save = {
-        chains: (val.chains||[]).map(x=>String(x).toLowerCase()),
-        cex: (val.cex||[]).map(x=>String(x).toUpperCase())
-    };
-    saveToLocalStorage('FILTER_MULTICHAIN', save);
+    // Merge with existing filter so other keys (e.g., sort, pnl) remain intact
+    const prev = getFromLocalStorage('FILTER_MULTICHAIN', {}) || {};
+    const next = { ...prev };
+    if (val && Object.prototype.hasOwnProperty.call(val, 'chains')) {
+        next.chains = (val.chains || []).map(x => String(x).toLowerCase());
+    }
+    if (val && Object.prototype.hasOwnProperty.call(val, 'cex')) {
+        next.cex = (val.cex || []).map(x => String(x).toUpperCase());
+    }
+    saveToLocalStorage('FILTER_MULTICHAIN', next);
 }
 
 function getFilterChain(chain){
@@ -114,8 +119,15 @@ function getFilterChain(chain){
 
 function setFilterChain(chain, val){
     const key = `FILTER_${String(chain).toUpperCase()}`;
-    const save = { cex: (val.cex||[]).map(String), pair: (val.pair||[]).map(x=>String(x).toUpperCase()) };
-    saveToLocalStorage(key, save);
+    const prev = getFromLocalStorage(key, {}) || {};
+    const next = { ...prev };
+    if (val && Object.prototype.hasOwnProperty.call(val, 'cex')) {
+        next.cex = (val.cex || []).map(String);
+    }
+    if (val && Object.prototype.hasOwnProperty.call(val, 'pair')) {
+        next.pair = (val.pair || []).map(x => String(x).toUpperCase());
+    }
+    saveToLocalStorage(key, next);
 }
 
 function getTokensMulti(){
