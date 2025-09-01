@@ -27,11 +27,11 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
 
         const idPrefix = tableBodyId + '_';
 
-        // Orderbook Left
+        // Orderbook Left (Token -> Pair)
         rowHtml += `
             <td style="color: ${warnaCex}; text-align: center; vertical-align: middle;">
                 <span id="${idPrefix}LEFT_${data.cex}_${data.symbol_in}_${data.symbol_out}_${data.chain.toUpperCase()}">
-                    <b>PRICE & VOL BUY <br>${data.cex}</b> 🔒
+                    <b>${(data.symbol_in||'').toUpperCase()} → ${(data.symbol_out||'').toUpperCase()}<br>${data.cex}</b> 🔒
                 </span>
             </td>`;
 
@@ -123,11 +123,11 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
             }
         }
 
-        // Orderbook Right
+        // Orderbook Right (Pair -> Token)
         rowHtml += `
             <td style="color: ${warnaCex}; text-align: center; vertical-align: middle;">
                 <span id="${idPrefix}RIGHT_${data.cex}_${data.symbol_in}_${data.symbol_out}_${data.chain.toUpperCase()}">
-                   <b> PRICE & VOL SELL <br>${data.cex}</b> 🔒
+                   <b>${(data.symbol_out||'').toUpperCase()} → ${(data.symbol_in||'').toUpperCase()}<br>${data.cex}</b> 🔒
                 </span>
             </td>`;
 

@@ -1006,9 +1006,18 @@ function deferredInit() {
 
         if (m.type === 'single') setTokensChain(m.chain, tokens); else setTokensMulti(tokens);
         toastr.success(idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan');
-        refreshTokensTable();
-        try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(_) {}
-        setLastAction(idx !== -1 ? "UBAH DATA KOIN" : "TAMBAH DATA KOIN");
+        // Refresh both monitoring and management views according to mode
+        try {
+            if (m.type === 'single') { loadAndDisplaySingleChainTokens(); }
+            else { refreshTokensTable(); }
+            if (typeof renderFilterCard === 'function') renderFilterCard();
+            renderTokenManagementList();
+        } catch(_) {}
+        try {
+            const action = (idx !== -1) ? 'UBAH KOIN' : 'TAMBAH KOIN';
+            const chainLbl = String(updatedToken.chain || (m.type==='single'? m.chain : 'all')).toUpperCase();
+            setLastAction(`${action} [${chainLbl}] `);
+        } catch(_) { setLastAction('UBAH KOIN'); }
         if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
     });
 
@@ -1108,7 +1117,11 @@ function deferredInit() {
             tokens[idx].status = val;
             if (m.type === 'single') setTokensChain(m.chain, tokens); else setTokensMulti(tokens);
             toastr.success(`Status diubah ke ${val ? 'ACTIVE' : 'INACTIVE'}`);
-            try { setLastAction("UBAH STATUS KOIN"); } catch(_) {}
+            try {
+                const chainLbl = String(tokens[idx]?.chain || (m.type==='single'? m.chain : 'all')).toUpperCase();
+                const pairLbl = `${String(tokens[idx]?.symbol_in||'').toUpperCase()}/${String(tokens[idx]?.symbol_out||'').toUpperCase()}`;
+                setLastAction(`UBAH STATUS KOIN [${chainLbl}] ${pairLbl}`);
+            } catch(_) { setLastAction('UBAH STATUS KOIN'); }
         }
     });
 
@@ -1626,15 +1639,16 @@ function readDexSelectionFromForm() {
     return { selectedDexs, dataDexs };
 }
 
-function deleteTokenById(tokenId) {
-    const m = getAppMode();
-    let tokens = (m.type === 'single') ? getTokensChain(m.chain) : getTokensMulti();
-    const updated = tokens.filter(t => String(t.id) !== String(tokenId));
-    if (m.type === 'single') setTokensChain(m.chain, updated); else setTokensMulti(updated);
-    refreshTokensTable();
-    renderTokenManagementList();
-    setLastAction("HAPUS KOIN");
-}
+    function deleteTokenById(tokenId) {
+        const m = getAppMode();
+        let tokens = (m.type === 'single') ? getTokensChain(m.chain) : getTokensMulti();
+        const updated = tokens.filter(t => String(t.id) !== String(tokenId));
+        if (m.type === 'single') setTokensChain(m.chain, updated); else setTokensMulti(updated);
+        refreshTokensTable();
+        try { loadAndDisplaySingleChainTokens(); } catch(_) {}
+        renderTokenManagementList();
+        setLastAction("UBAH KOIN");
+    }
 
 function setLastAction(action) {
     const formattedTime = new Date().toLocaleString('id-ID', { hour12: false });
