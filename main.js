@@ -454,8 +454,8 @@ function deferredInit() {
                 const msg = parts.length ? parts.join(' | ') : `Filter MULTI diperbarui: CHAIN=${chains.length}, CEX=${cex.length}`;
                 try { toastr.info(msg); } catch(_){ }
 
-                // Clear search when filter changes
-                try { $('#searchInput').val(''); } catch(_){}
+                // Clear both monitoring and management search boxes after filter change
+                try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
                 refreshTokensTable();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -526,8 +526,8 @@ function deferredInit() {
                 const label = String(chain).toUpperCase();
                 const msg = parts.length ? `[${label}] ${parts.join(' | ')}` : `[${label}] Filter diperbarui: CEX=${c.length}, PAIR=${p.length}`;
                 try { toastr.info(msg); } catch(_){ }
-                // Clear search when filter changes
-                try { $('#searchInput').val(''); } catch(_){}
+                // Clear both monitoring and management search boxes after filter change
+                try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
                 loadAndDisplaySingleChainTokens();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -1011,6 +1011,8 @@ function deferredInit() {
             deleteTokenById(id);
             toastr.success(`KOIN TERHAPUS`);
             if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
+            // Full reload to ensure all views (monitoring & management) reflect removal
+            try { location.reload(); } catch(_) {}
         }
     });
 

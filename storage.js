@@ -49,8 +49,17 @@
         } catch(_) { return 'TOKEN_MULTICHAIN'; }
     }
 
+    function getActiveChainLabel() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const raw = (params.get('chain') || 'all').toLowerCase();
+            return (!raw || raw === 'all') ? 'MULTICHAIN' : raw.toUpperCase();
+        } catch(_) { return 'MULTICHAIN'; }
+    }
+
     function downloadTokenScannerCSV() {
         const tokenData = getFromLocalStorage(getActiveTokenKeyLocal(), []);
+        const chainLabel = getActiveChainLabel();
 
         // Header sesuai struktur
         const headers = [
@@ -85,13 +94,13 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "KOIN_MULTISCANNER.csv";
+        a.download = `KOIN_MULTISCANNER_${chainLabel}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        setLastAction("EXPORT DATA KOIN");
+        setLastAction(`EXPORT DATA KOIN [${chainLabel}]`);
     }
 
     // ============================
@@ -145,13 +154,14 @@
                 });
 
                 // Simpan ke localStorage
+                const chainLabel = getActiveChainLabel();
                 saveToLocalStorage(getActiveTokenKeyLocal(), tokenData);
                 // Hitung jumlah token yang diimport
                 let jumlahToken = Array.isArray(tokenData) ? tokenData.length : 0;
 
                 // Tampilkan alert dengan Unicode
                 alert(`✅ BERHASIL IMPORT ${jumlahToken} TOKEN 📦`);
-                setLastAction("IMPORT DATA KOIN");
+                setLastAction(`IMPORT DATA KOIN [${chainLabel}]`);
                 location.reload();
 
             } catch (error) {
