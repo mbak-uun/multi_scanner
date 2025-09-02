@@ -98,6 +98,19 @@ a:hover, .uk-link:hover {
 /* Hidden row utility when deleting a token during scan */
 .row-hidden { display: none !important; }
 
+/* Signal cards: show initial space/message when empty */
+#sinyal-container .signal-card_content {
+  min-height: 20px; /* give cards some initial height */
+  padding: 6px 4px; /* gentle inner padding */
+}
+#sinyal-container .signal-card_content:empty::before {
+  content: 'Belum ada sinyal';
+  display: block;
+  color: #03431a;
+  font-style: italic;
+  opacity: 0.85;
+}
+
 /* Header */
 .header-card {
     background: #ffffff;
