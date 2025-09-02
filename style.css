@@ -103,6 +103,15 @@ a:hover, .uk-link:hover {
     transform: scale(1.2);
 }
 
+/* Responsive toolbar: horizontal scroll on small screens */
+.toolbar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.toolbar-scroll .icon {
+    flex: 0 0 auto;
+}
+
 /* Onboarding callouts */
 .cta-settings {
     background: #e53935 !important; /* red */
@@ -183,6 +192,7 @@ a:hover, .uk-link:hover {
     background-color: white;
     border: 1px solid #dddfe2;
     border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .uk-table thead th {
@@ -432,4 +442,68 @@ body.dark-mode {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+/* Fluid title size */
+#judul {
+    font-size: clamp(16px, 2.2vw, 20px) !important;
+}
+
+/* Signal cards */
+.signal-card__header {
+  min-height: 30px;
+}
+.signal-card__body {
+  padding-top: 6px !important;
+  padding-bottom: 8px !important;
+}
+.signal-card__content {
+  font-size: 13.5px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* Compact table and hide wide-only columns on small screens */
+@media (max-width: 960px) {
+  /* Reduce table typographic scale */
+  .uk-table tbody td { font-size: 11px; padding: 6px 8px; }
+  .uk-table thead th { font-size: 11px; }
+
+  /* Signal card: tighter font and padding */
+  .signal-card__content { font-size: 12.5px; }
+  .signal-card__body { padding: 6px 8px !important; }
+
+  /* Hide ORDERBOOK columns in wide tables */
+  #main-table thead th:nth-child(1),
+  #main-table tbody td:nth-child(1),
+  #main-table thead th:nth-child(11),
+  #main-table tbody td:nth-child(11) { display: none; }
+
+  #single-chain-table thead th:nth-child(1),
+  #single-chain-table tbody td:nth-child(1),
+  #single-chain-table thead th:nth-child(11),
+  #single-chain-table tbody td:nth-child(11) { display: none; }
+
+  /* Reduce container paddings */
+  .uk-container { padding-left: 6px; padding-right: 6px; }
+
+  /* Make iframe view shorter on mobile */
+  #iframe-container iframe { height: 60vh; }
+
+  /* Tighten cards */
+  .header-card { padding: 6px 10px !important; }
+}
+
+@media (max-width: 640px) {
+  /* Even tighter spacing on very small devices */
+  .uk-table tbody td { font-size: 10.5px; padding: 5px 6px; }
+  #progress-bar { height: 12px; }
+  #progress-text { line-height: 12px; font-size: 9px; }
+
+  /* Signal card: compact */
+  .signal-card__content { font-size: 12px; }
+  .signal-card__header { padding: 6px 8px !important; }
 }

@@ -533,26 +533,38 @@ function DisplayPNL(data) {
 }
 
 function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix) {
-    const chainData = getChainData(nameChain);
-    const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
-    const warnaChain = String(chainData?.COLOR_CHAIN);
-    const filterPNLValue = (typeof getPNLFilter === 'function') ? getPNLFilter() : parseFloat(SavedSettingData.filterPNL);
-    const warnaCEX = getWarnaCEX(cex);
-    const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
-    const baseId = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
-    const highlightStyle = (Number(PNL) > filterPNLValue) ? "background-color:#94fa95; font-weight:bolder;" : "";
+  const chainData = getChainData(nameChain);
+  const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
+  const warnaChain = String(chainData?.COLOR_CHAIN);
+  const filterPNLValue = (typeof getPNLFilter === 'function') ? getPNLFilter() : parseFloat(SavedSettingData.filterPNL);
+  const warnaCEX = getWarnaCEX(cex);
+  const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
+  const baseId = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
+  const highlightStyle = (Number(PNL) > filterPNLValue) ? "background-color:#94fa95; font-weight:bolder;" : "";
 
-    const modeNow2 = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
-    const isSingleMode2 = String(modeNow2.type).toLowerCase() === 'single';
-    const chainPart = isSingleMode2 ? '' : ` <span style=\"color:${warnaChain};\">[${chainShort}]</span>`;
-    const sLink = `<div><a href="#${idPrefix}${baseId}" class="buy" style="text-decoration:none; font-size:12px;"><span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-left:4px; margin-top:6px;">🔸 ${String(cex).slice(0,3).toUpperCase()}X<span class="uk-text-dark">:${modal}</span> <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}: <span class="uk-text-dark">${Number(PNL).toFixed(2)}$</span></span></a></div>`;
+  const modeNow2 = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+  const isSingleMode2 = String(modeNow2.type).toLowerCase() === 'single';
+  const chainPart = isSingleMode2 ? '' : ` <span style="color:${warnaChain};">[${chainShort}]</span>`;
 
-    $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
+  // Item sinyal: kompak + border kanan (separator)
+  const sLink = `
+    <div class="signal-item uk-flex uk-flex-middle uk-flex-nowrap uk-text-small uk-padding-remove-vertical" >
+      <a href="#${idPrefix}${baseId}" class="uk-link-reset" style="text-decoration:none; font-size:12px; margin-top:2px;">
+        <span style="color:${warnaCEX}; ${highlightStyle}; display:inline-block;">
+          🔸 ${String(cex).slice(0,3).toUpperCase()}X
+          <span class="uk-text-dark">:${modal}</span>
+          <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}:
+          <span class="uk-text-dark">${Number(PNL).toFixed(2)}$</span>
+        </span>
+      </a>
+    </div>`;
 
-    const audio = new Audio('audio.mp3');
-    audio.play();
+  $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
+
+  const audio = new Audio('audio.mp3');
+  audio.play();
 }
-
+ 
 function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype,nameChain,codeChain, trx, vol,DataDEX) {
     const NameX = Name_in + "_" + Name_out;
     const FeeWD = parseFloat(feeWD);

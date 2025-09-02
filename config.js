@@ -1,7 +1,4 @@
-const CONFIG_TELEGRAM = {
-    BOT_TOKEN: "8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU",
-    CHAT_ID: "-1002079288809"
-};
+// Telegram config is now defined in secrets.js
 
 const CONFIG_CEX = {
     GATE: {
@@ -59,7 +56,7 @@ const CONFIG_CHAINS = {
         Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA:"#a6b0c3", ICON:"https://wiki.dextrac.com:3443/images/1/11/Arbitrum_Logo.png", DATAJSON: 'https://monitoring-koin.vercel.app/JSON/arb.json', BaseFEEDEX : "ETHUSDT", RPC: 'https://arbitrum-one-rpc.publicnode.com', GASLIMIT: 100000,
         DEXS: ["1inch", "odos", "kyberswap", "0x", "okx", "lifi"],
         WALLET_CEX: {
-            GATE: { address : '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX : 'ARBEVM' },
+            GATE: { address : '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX : 'ARBITRUM' },
             BINANCE: { address : '0x290275e3db66394C52272398959845170E4DCb88', address2 : '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX : 'ARBITRUM' },
             MEXC: { address : '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB', chainCEX : 'ARB' },
         },    
@@ -105,7 +102,7 @@ const CONFIG_CHAINS = {
         Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA:"#1e46f9", ICON:"https://avatars.githubusercontent.com/u/108554348?v=4", DATAJSON: 'https://monitoring-koin.vercel.app/JSON/base.json', BaseFEEDEX : "ETHUSDT", RPC: 'https://base.llamarpc.com', GASLIMIT: 100000,
         DEXS: ["1inch", "odos", "kyberswap", "0x", "okx", "lifi"],
         WALLET_CEX: {
-            GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASEEVM' },
+            GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
             MEXC: { address : '0x4e3ae00E8323558fA5Cac04b152238924AA31B60', chainCEX : 'BASE' },
             INDODAX: { address : '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2 : '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX : 'POLYGON' },   

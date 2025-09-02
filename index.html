@@ -35,7 +35,7 @@
                         <h3 id="judul" class="uk-margin-remove" 
                             style="font-size: 18px; line-height: 1.2; color: #000; font-weight: bold;">
                             MULTISCANNER <span id="current-chain-label" style="margin-left:3px;">[ALL]</span>
-                             <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" /> 
+                            <!-- <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" /> -->
                         </h3>
                         &nbsp;&nbsp;
                         <span>[ <b> 
@@ -46,7 +46,7 @@
 
                 <!-- Kanan: Toolbar icon -->
                 <div class="uk-width-auto@s uk-width-1-1">
-                    <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s" style="gap: 6px;">                        
+                    <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s toolbar-scroll" style="gap: 6px;">                        
                          <a href="index.html?chain=all" id="multichain_scanner" ><img class="icon" title="SCANNER MUTLTICHAIN" width="24px" src="https://cdn-icons-png.flaticon.com/512/8897/8897593.png" /></a>
                         <span id="chain-links-container"></span>
                          
@@ -171,7 +171,7 @@
     </div>
 
     <div class="uk-overflow-auto uk-margin-small-top ">
-        <table class="uk-table uk-table-hover uk-table-small uk-table-striped" style="border-collapse: collapse; width: 100%;">
+        <table id="main-table" class="uk-table uk-table-hover uk-table-small uk-table-striped" style="border-collapse: collapse; width: 100%;">
             <thead style="background: #5c9514;">
                 <tr style="border-bottom: 1px solid black;">
                     <th rowspan="2" class="uk-text-center uk-text-bolder" style=" color: white !important;">
@@ -288,22 +288,18 @@
     </section>
 
     <!-- SECTION: IFRAME CONTAINER -->
-   <section id="iframe-container"
-         class="uk-card uk-card-default uk-card-body uk-margin-small"
-         style="display:none; height:85vh;">
-  <div class="uk-background-muted uk-padding-small uk-height-1-1 uk-border-rounded">
-    <iframe id="iframe-content"
-            src=""
-            style="width:100%; height:100%; border:none; background:transparent;"></iframe>
-  </div>
-</section>
+   <section id="iframe-container"  class="uk-card uk-card-default uk-card-body uk-margin-small" style="display:none; height:85vh;">
+        <div class="uk-background-muted uk-padding-small uk-height-1-1 uk-border-rounded">
+            <iframe id="iframe-content"  src=""  style="width:100%; height:100%; border:none; background:transparent;"></iframe>
+        </div>
+    </section>
 
 
     <!-- SECTION: SINGLE CHAIN SCANNER -->
     <section id="single-chain-view" style="display: none;">
         <!-- Table for this view -->
         <div class="uk-overflow-auto uk-margin-small-top">
-            <table class="uk-table uk-table-hover uk-table-small uk-table-striped">
+            <table id="single-chain-table" class="uk-table uk-table-hover uk-table-small uk-table-striped">
                 <thead style="background: #5c9514;">
                     <tr style="border-bottom: 1px solid black;">
                         <th rowspan="2" class="uk-text-center uk-text-bolder" style=" color: white !important;">
@@ -448,7 +444,7 @@
 
 <!-- Modal UIKIT TOKEN SYNC -->
 <div id="sync-modal" uk-modal>
-  <div class="uk-modal-dialog uk-width-2xlarge uk-margin-auto-vertical">
+  <div class="uk-modal-dialog uk-width-1-1@m uk-width-2-3@l uk-margin-auto-vertical">
 
     <!-- HEADER -->
     <div class="uk-modal-header uk-flex uk-flex-between uk-flex-middle uk-padding-small">

@@ -159,63 +159,85 @@ function updateDarkIcon(isDark) {
  * Renders the signal display area for each DEX.
  */
 function RenderCardSignal() {
-    const dexList = Object.keys(CONFIG_DEXS || {});
-    const sinyalContainer = document.getElementById('sinyal-container');
-    if (!sinyalContainer) return;
+  const dexList = Object.keys(CONFIG_DEXS || {});
+  const sinyalContainer = document.getElementById('sinyal-container');
+  if (!sinyalContainer) return;
 
-    sinyalContainer.innerHTML = '';
-    sinyalContainer.setAttribute('uk-grid', '');
-    sinyalContainer.className = 'uk-grid uk-grid-small uk-child-width-expand';
+  // Grid responsif: 1 / 2@s / 3@m / 6@l
+  sinyalContainer.innerHTML = '';
+  sinyalContainer.setAttribute('uk-grid', '');
+  sinyalContainer.className =
+    'uk-grid uk-grid-small uk-grid-match ' +
+    'uk-child-width-1-1 ' +
+    'uk-child-width-1-2@s ' +
+    'uk-child-width-1-3@m ' +
+    'uk-child-width-1-6@l';
 
-    // Determine active chain color (single mode) for header theme only
-    let chainColor = '#5c9514';
-    try {
-        const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
-        if (m.type === 'single') {
-            const cfg = (window.CONFIG_CHAINS || {})[m.chain] || {};
-            if (cfg.WARNA) chainColor = cfg.WARNA;
-        }
-    } catch(_) {}
+  // Warna header sesuai chain
+  let chainColor = '#5c9514';
+  try {
+    const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+    if (m.type === 'single') {
+      const cfg = (window.CONFIG_CHAINS || {})[m.chain] || {};
+      if (cfg.WARNA) chainColor = cfg.WARNA;
+    }
+  } catch(_) {}
 
-    dexList.forEach((dex, index) => {
-        const gridItem = document.createElement('div');
-        const card = document.createElement('div');
-        card.className = 'uk-card uk-card-default uk-card-hover';
-        card.style.cssText = `border-radius: 5px; overflow: hidden; border: 1px solid ${chainColor}; padding-bottom: 10px; margin-top: 10px;`;
+  dexList.forEach((dex, index) => {
+    const gridItem = document.createElement('div');
 
-        const cardHeader = document.createElement('div');
-        cardHeader.className = 'uk-card-header uk-padding-remove-vertical uk-padding-small';
-        cardHeader.style.cssText = `background-color: ${chainColor}; color:#fff; height: 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid ${chainColor};`;
+    const card = document.createElement('div');
+    card.className = 'uk-card uk-card-default uk-card-hover uk-card-small signal-card uk-margin-small-top';
+    card.style.cssText = `border-radius:6px; overflow:hidden; border:1px solid ${chainColor};`;
 
-        const bodyId = `body-${String(dex).toLowerCase()}-${index}`;
-        cardHeader.innerHTML = `
-            <div class="uk-flex uk-flex-middle" style="gap:8px;">
-                <span class="uk-text-bold" style="color:#fff !important; font-size:14px;">${String(dex).toUpperCase()}</span>
-            </div>
-            <a class="uk-icon-link uk-text-bolder" style="color:#fff;" uk-icon="chevron-up" uk-toggle="target: #${bodyId}"></a>
-        `;
+    const bodyId = `body-${String(dex).toLowerCase()}-${index}`;
 
-        const cardBody = document.createElement('div');
-        cardBody.className = 'uk-card-body uk-padding-remove';
-        cardBody.id = bodyId;
+    // HEADER lebih tipis
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'uk-card-header uk-padding-small uk-padding-remove-vertical uk-flex uk-flex-middle uk-flex-between';
+    cardHeader.style.cssText = `background-color:${chainColor}; color:#fff; border-bottom:1px solid ${chainColor};`;
 
-        const signalSpan = document.createElement('div');
-        signalSpan.id = `sinyal${String(dex).toLowerCase()}`;
-        signalSpan.style.fontSize = '13.5px';
+    const left = document.createElement('div');
+    left.className = 'uk-flex uk-flex-middle';
+    left.style.gap = '8px';
+    left.innerHTML = `<span class="uk-text-bold" style="color:#fff!important; font-size:14px;">${String(dex).toUpperCase()}</span>`;
 
-        cardBody.appendChild(signalSpan);
-        card.appendChild(cardHeader);
-        card.appendChild(cardBody);
-        gridItem.appendChild(card);
-        sinyalContainer.appendChild(gridItem);
-    });
+    const toggle = document.createElement('a');
+    toggle.className = 'uk-icon-link uk-text-bolder';
+    toggle.style.color = '#fff';
+    toggle.setAttribute('uk-icon', 'chevron-up');
+    toggle.setAttribute('uk-toggle', `target: #${bodyId}`);
 
-    UIkit.update(sinyalContainer);
+    cardHeader.appendChild(left);
+    cardHeader.appendChild(toggle);
 
-    // Apply theme after building (handles dark/light without rebuilding cards)
-    try { if (typeof window.updateSignalTheme === 'function') window.updateSignalTheme(); } catch(_) {}
+    // BODY lebih ramping (tipis atas-bawah + sempit kiri-kanan)
+    const cardBody = document.createElement('div');
+    cardBody.className = 'uk-card-body uk-padding-small uk-padding-remove-vertical';
+    cardBody.style.paddingLeft = '6px';
+    cardBody.style.paddingRight = '6px';
+    cardBody.id = bodyId;
+
+    // CONTAINER SINYAL: flex wrap rapat
+    const signalSpan = document.createElement('div');
+    signalSpan.id = `sinyal${String(dex).toLowerCase()}`;
+    signalSpan.className = 'signal-card_content uk-flex uk-flex-middle uk-flex-wrap';
+    signalSpan.style.gap = '2px'; // jarak antar sinyal kecil
+
+    cardBody.appendChild(signalSpan);
+    card.appendChild(cardHeader);
+    card.appendChild(cardBody);
+    gridItem.appendChild(card);
+    sinyalContainer.appendChild(gridItem);
+  });
+
+  UIkit.update(sinyalContainer);
+
+  // Sinkron tema + warna border sinyal saat dark mode
+  try { if (typeof window.updateSignalTheme === 'function') window.updateSignalTheme(); } catch(_) {}
 }
 
+ 
 // Expose updater to switch theme for signal cards when dark mode toggles
 window.updateSignalTheme = function() {
     try {
@@ -231,7 +253,7 @@ window.updateSignalTheme = function() {
         const cards = container.querySelectorAll('.uk-card');
         cards.forEach(card => {
             // Body warna: putih (light), abu-abu gelap (dark)
-            card.style.background = isDark ? '#e8e5e5ff' : '#d9d3d3ff';
+            card.style.background = isDark ? '#e8e5e5ff' : '#ffffffff';
             card.style.color = isDark ? '#ffffff' : '#000000';
             card.style.borderColor = chainColor;
             const header = card.querySelector('.uk-card-header');

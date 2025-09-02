@@ -24,16 +24,6 @@
  * @param {string} tableBodyId - The ID of the table body to update.
  * @param {function} callback - The callback function (error, result).
  */
-// moved to services/cex.js: getPriceCEX (shim is defined at end of file)
-
-// LEGACY DEX implementation retained for reference.
-// Active code: services/dex.js (shims at end delegate).
-// DEX strategies moved to services/dex.js
-
-
-// getPriceDEX moved to services/dex.js (see shim at end)
-
-// getPriceSWOOP moved to services/dex.js (see shim at end)
 
 /**
  * Fetches USDT/IDR rate from Tokocrypto via a proxy.
@@ -212,7 +202,8 @@ async function fetchWalletStatus(cex) {
                 (item.networkList || []).map(net => ({
                     cex,
                     tokenName: item.coin,
-                    chain: net.netWork,
+                    // Be defensive with field name variations
+                    chain: net.network || net.netWork || net.chain || net.name || '',
                     feeWDs: parseFloat(net.withdrawFee || 0),
                     depositEnable: !!net.depositEnable,
                     withdrawEnable: !!net.withdrawEnable

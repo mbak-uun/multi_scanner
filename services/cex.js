@@ -238,7 +238,7 @@
                   (item.networkList || []).map(net => ({
                       cex,
                       tokenName: item.coin,
-                      chain: net.netWork,
+                      chain: net.network || net.netWork || net.chain || net.name || '',
                       feeWDs: parseFloat(net.withdrawFee || 0),
                       depositEnable: !!net.depositEnable,
                       withdrawEnable: !!net.withdrawEnable
@@ -264,14 +264,17 @@
 
               return statusData.flatMap(item =>
                   (item.chains || []).map(chain => {
-                      const match = (wdData || []).find(w => w.currency === (item.currency || '')) || {};
+                      const match = (wdData || []).find(w => (w.currency || '').toUpperCase() === (item.currency || '').toUpperCase()) || {};
+                      const chainCode = String(chain.name || chain.chain || chain.network || chain.chain_name || '').toUpperCase();
+                      const feeMap = match.withdraw_fix_on_chains || {};
+                      const feeOnChain = feeMap[chainCode] ?? feeMap[chain.name] ?? feeMap[chain.chain] ?? 0;
                       return {
                           cex,
                           tokenName: item.currency,
-                          chain: chain.chain,
-                          feeWDs: parseFloat(chain.withdraw_fee || match.withdraw_fix_on_chains?.[chain.chain] || 0),
-                          depositEnable: chain.deposit_disabled === false,
-                          withdrawEnable: chain.withdraw_disabled === false,
+                          chain: chainCode,
+                          feeWDs: parseFloat(chain.withdraw_fee || feeOnChain || 0),
+                          depositEnable: !Boolean(chain.deposit_disabled),
+                          withdrawEnable: !Boolean(chain.withdraw_disabled),
                       };
                   })
               );
@@ -311,11 +314,19 @@
 
               const chainLabelForCEX = getChainData(token.chain)?.CEXCHAIN?.[cexKey]?.chainCEX?.toUpperCase() || '';
 
+              function resolveWalletChain(walletInfo, desired) {
+                  if (!walletInfo) return null;
+                  const want = String(desired || '').toUpperCase();
+                  if (!want) return null;
+                  // Strict: only exact key match per config.js mapping
+                  return walletInfo[want] || null;
+              }
+
               const updateForSymbol = (symbol, isTokenIn) => {
                   if (!symbol) return;
                   const symbolUpper = symbol.toUpperCase();
                   const walletInfo = walletForCex[symbolUpper];
-                  const match = walletInfo ? walletInfo[chainLabelForCEX] : null;
+                  const match = resolveWalletChain(walletInfo, chainLabelForCEX);
 
                   if (match) {
                       updatedDataCexs[cexKey] = updatedDataCexs[cexKey] || {};
@@ -380,9 +391,14 @@
       results.flat().forEach(item => {
           if (!item) return;
           const { cex, tokenName, chain, ...rest } = item;
-          const ucCex = cex.toUpperCase();
-          const ucToken = tokenName.toUpperCase();
-          const ucChain = chain.toUpperCase();
+          // Guard against malformed payloads
+          if (!cex || !tokenName || !chain) {
+              console.warn('Skipping malformed wallet item:', item);
+              return;
+          }
+          const ucCex = String(cex).toUpperCase();
+          const ucToken = String(tokenName).toUpperCase();
+          const ucChain = String(chain).toUpperCase();
 
           if (!walletStatusByCex[ucCex]) walletStatusByCex[ucCex] = {};
           if (!walletStatusByCex[ucCex][ucToken]) walletStatusByCex[ucCex][ucToken] = {};
