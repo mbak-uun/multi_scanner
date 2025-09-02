@@ -86,71 +86,81 @@
         </div>
     </div>
 
-    <div class="uk-card uk-card-default uk-padding-small uk-card-hover" id="scanner-config" >
-
+    <div class="uk-card uk-card-default uk-padding-small uk-card-hover" id="scanner-config">
         <div class="uk-grid-small uk-flex-middle" uk-grid>
 
             <!-- Form Setting -->
             <div class="uk-width-1-1">
-                <form id="FormScanner" class="uk-flex uk-flex-middle uk-flex-wrap uk-grid-small" uk-grid>
+            <form id="FormScanner" class="uk-grid-small uk-flex-middle" uk-grid>
 
-             <!-- Pencarian -->
-            <div class="uk-width-auto uk-flex uk-flex-middle"> 
-                <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">&nbsp;
-                <span class="uk-text-danger  ">Vol Check</span> &nbsp;
-                 <input class="form-check-input me-1" type="checkbox" id="autoScrollCheckbox">
-                <label class=" uk-text-warning" for="autoScrollCheckbox">Auto Scroll</label>
-            </div>
-                     <span class="uk-text-dark uk-text-bolder">SCANNER:</span>
-                    <!-- Checkbox -->
-                    <label>
-                        <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
-                        <span class="uk-text-success uk-form-label">KIRI</span>
+                <!-- KOLOM KIRI: semua kontrol kecuali Search -->
+                <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
+                <span class=" uk-text-bolder">SCANNER:</span>
+
+                <label class="uk-margin-small-left">
+                    <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
+                    <span class="uk-text-danger">Vol Check</span>
+                </label>
+
+                <label class="uk-margin-small-left">
+                    <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
+                    <span class="uk-text-success uk-form-label">KIRI</span>
+                </label>
+                <label>
+                    <input class="uk-checkbox posisi-check uk-margin-small-left" type="checkbox" value="ActionKanan" checked>
+                    <span class="uk-text-success uk-form-label">KANAN</span>
+                </label>
+
+                <div class="uk-inline uk-margin-small-left">
+                    <span class="uk-text-danger uk-text-bolder">PNL</span>
+                    <input id="pnlFilterInput" class="uk-input uk-form-small" type="number" step="0.01" min="0" placeholder="PNL $" style="width:70px;">
+                </div>
+
+                <div class="uk-button-group uk-margin-small-left">
+                    <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active" data-sort="opt_A">
+                    <input class="uk-hidden" type="radio" name="toggle" value="opt_A" checked> A-Z
                     </label>
-                    <label>
-                        <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
-                        <span class="uk-text-success uk-form-label">KANAN</span>
+                    <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle" data-sort="opt_Z">
+                    <input class="uk-hidden" type="radio" name="toggle" value="opt_Z"> Z-A
                     </label>
-                   
-                   
+                </div>
+ 
+                <div class="uk-button-group uk-margin-small-left">
+                    <button type="button" id="startSCAN" data-feature="scan" class="uk-button uk-button-secondary uk-button-small">START</button>
+                    <button type="button" id="stopSCAN" data-feature="scan" style="display:none;" class="uk-button uk-button-danger uk-button-small">STOP</button>
+                </div>
+                </div>
 
-                    <!-- PNL Filter per mode -->
-                    <div class="uk-inline uk-margin-small-left">
-                        <span class="uk-text-danger uk-text-bolder">PNL</span>
-                        <input id="pnlFilterInput" class="uk-input uk-form-small" type="number" step="0.01" min="0" placeholder="PNL $" style="width:70px;">                    
-                    </div>
+                <!-- KOLOM KANAN: Search, rata kanan ≥ @m -->
+                <div class="uk-width-1-1 uk-width-auto@m">
+                    <div class="uk-flex uk-flex-right@m uk-flex-middle uk-flex-wrap">
 
-                    <!-- Search (moved here) -->
-                    <div class="uk-margin-small-left uk-flex uk-flex-middle">
-                        <!-- <span class="uk-text-success uk-text-bolder">SEARCH</span> -->
-                        <input type="text" id="searchInput" class="uk-input uk-form-small uk-form-primary uk-form-width-small" placeholder="Cari Koin...">
-                    </div>
-
-                     <!-- Sort Buttons -->
-                    <div class="uk-button-group">
-                        <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active" data-sort="opt_A">
-                            <input class="uk-hidden" type="radio" name="toggle" value="opt_A" checked> A-Z
+                        <label class="uk-margin-small-left uk-flex uk-flex-middle">
+                        <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
+                        <span class="uk-text-warning uk-margin-small-left">Auto Scroll</span>
                         </label>
-                        <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle" data-sort="opt_Z">
-                            <input class="uk-hidden" type="radio" name="toggle" value="opt_Z"> Z-A
-                        </label>
+
+                        <div class="uk-margin-small-left">
+                        <input type="text" id="searchInput"
+                                class="uk-input uk-form-small uk-form-primary uk-form-width-small"
+                                placeholder="Cari Koin...">
+                        </div>
+
                     </div>
-                    <!-- Start/Stop Buttons -->
-                    <div class="uk-button-group">
-                        <button type="button" id="startSCAN" data-feature="scan" class="uk-button uk-button-secondary uk-button-small">START</button>
-                        <button type="button" id="stopSCAN" data-feature="scan" style="display: none;"  class="uk-button uk-button-danger uk-button-small">STOP</button>
-                    </div>
-                </form>
+                </div>
+
+
+            </form>
             </div>
 
             <!-- Progress Bar -->
             <div class="uk-width-1-1 uk-margin-remove-top">
-                <div id="progress-container">
-                    <div id="progress-bar">
-                        <span id="progress-text">0%</span>
-                    </div>
+            <div id="progress-container">
+                <div id="progress-bar">
+                <span id="progress-text">0%</span>
                 </div>
-                <div id="progress" class="uk-margin-remove" style="font-size: 12px; font-weight: bold; color: green;"></div>
+            </div>
+            <div id="progress" class="uk-margin-remove" style="font-size:12px;font-weight:bold;color:green;"></div>
             </div>
         </div>
     </div>
@@ -189,7 +199,7 @@
     
       <!-- SECTION -->
     <section id="form-setting-app" class="uk-card uk-card-default uk-card-body uk-margin-small" style="display:none;">
-        <h3 class="uk-card-title">:: PENGATURAN APLIKASI</h3>
+        <h3 style="text-align: center; margin: 12px 0px; color: #1317e1;">:: PENGATURAN SCANNING APLIKASI</h3>
         <form>
             <div class="uk-grid-small" uk-grid>
                 <div class="uk-width-1-2">
@@ -278,9 +288,16 @@
     </section>
 
     <!-- SECTION: IFRAME CONTAINER -->
-    <section id="iframe-container" style="display: none; height: 85vh; padding: 10px;" class="uk-card uk-card-default uk-card-body uk-margin-small">
-        <iframe id="iframe-content" src="" style="width: 100%; height: 100%; border: none;"></iframe>
-    </section>
+   <section id="iframe-container"
+         class="uk-card uk-card-default uk-card-body uk-margin-small"
+         style="display:none; height:85vh;">
+  <div class="uk-background-muted uk-padding-small uk-height-1-1 uk-border-rounded">
+    <iframe id="iframe-content"
+            src=""
+            style="width:100%; height:100%; border:none; background:transparent;"></iframe>
+  </div>
+</section>
+
 
     <!-- SECTION: SINGLE CHAIN SCANNER -->
     <section id="single-chain-view" style="display: none;">

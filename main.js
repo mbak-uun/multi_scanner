@@ -660,6 +660,7 @@ function deferredInit() {
         const isDark = body.hasClass('dark-mode');
         setAppState({ darkMode: isDark });
         updateDarkIcon(isDark);
+        try { if (typeof window.updateSignalTheme === 'function') window.updateSignalTheme(); } catch(_) {}
     });
 
     $('.sort-toggle').off('click').on('click', function () {
@@ -1446,7 +1447,7 @@ $(document).ready(function() {
     }
 
     // $('#namachain').text("MULTISCANNER");
-    $('#sinyal-container').css('color', "black");
+    $('#sinyal-container').css('color', 'black');
     $('h4#daftar,h4#judulmanajemenkoin').css({ 'color': 'white', 'background': `linear-gradient(to right, #5c9513, #ffffff)`, 'padding-left': '7px', 'border-radius': '5px' });
 
     updateDarkIcon(isDark);

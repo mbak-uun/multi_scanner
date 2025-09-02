@@ -60,7 +60,7 @@
   }
 
   // ====== Konfigurasi Exchange ======
-  const exchangeConfig = {
+  let exchangeConfig = {
       GATE: {
           url: coins => `https://api.gateio.ws/api/v4/spot/order_book?limit=5&currency_pair=${coins.symbol}_USDT`,
           processData: data => processOrderBook(data, 3)
@@ -78,6 +78,20 @@
           processData: data => processIndodaxOrderBook(data, 3)
       }
   };
+
+  // If CEX registry is present and defines orderbook config, prefer it
+  try {
+    if (root.CEX && typeof root.CEX._all === 'function') {
+      const merged = {};
+      root.CEX._all().forEach(e => {
+        if (e?.orderbook && typeof e.orderbook.urlTpl === 'function' && typeof e.orderbook.parser === 'function') {
+          merged[e.name] = { url: e.orderbook.urlTpl, processData: e.orderbook.parser };
+        }
+      });
+      // Keep existing as fallback for entries not provided via registry
+      exchangeConfig = Object.assign({}, exchangeConfig, merged);
+    }
+  } catch(_) {}
 
   /** Fetches the order book for a token pair from a CEX. */
   function getPriceCEX(coins, NameToken, NamePair, cex, tableBodyId) {
@@ -408,4 +422,3 @@
     }});
   }
 })(typeof window !== 'undefined' ? window : this);
-

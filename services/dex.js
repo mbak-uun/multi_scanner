@@ -199,4 +199,39 @@
   if (typeof App.register === 'function') {
     App.register('Services', { DEX: { dexStrategies, getPriceDEX, getPriceSWOOP } });
   }
+
+  // Lightweight DEX registry for link builders and policy
+  (function initDexRegistry(){
+    const REG = new Map();
+    function norm(n){ return String(n||'').toLowerCase(); }
+    const DexAPI = {
+      register(name, def){
+        const key = norm(name);
+        if (!key) return;
+        const entry = {
+          builder: def?.builder,
+          allowFallback: !!def?.allowFallback,
+          strategy: def?.strategy || null,
+        };
+        REG.set(key, entry);
+        // keep CONFIG_DEXS in sync for existing callers
+        root.CONFIG_DEXS = root.CONFIG_DEXS || {};
+        root.CONFIG_DEXS[key] = root.CONFIG_DEXS[key] || {};
+        if (typeof entry.builder === 'function') root.CONFIG_DEXS[key].builder = entry.builder;
+        if ('allowFallback' in entry) root.CONFIG_DEXS[key].allowFallback = entry.allowFallback;
+      },
+      get(name){ return REG.get(norm(name)) || null; },
+      list(){ return Array.from(REG.keys()); }
+    };
+
+    // Seed from existing CONFIG_DEXS if present
+    try {
+      Object.keys(root.CONFIG_DEXS || {}).forEach(k => {
+        const d = root.CONFIG_DEXS[k] || {};
+        DexAPI.register(k, { builder: d.builder, allowFallback: !!d.allowFallback });
+      });
+    } catch(_){}
+
+    root.DEX = DexAPI;
+  })();
 })(typeof window !== 'undefined' ? window : this);

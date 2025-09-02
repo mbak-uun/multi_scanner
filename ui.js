@@ -158,7 +158,7 @@ function updateDarkIcon(isDark) {
 /**
  * Renders the signal display area for each DEX.
  */
-function loadSignalData() {
+function RenderCardSignal() {
     const dexList = Object.keys(CONFIG_DEXS || {});
     const sinyalContainer = document.getElementById('sinyal-container');
     if (!sinyalContainer) return;
@@ -167,22 +167,32 @@ function loadSignalData() {
     sinyalContainer.setAttribute('uk-grid', '');
     sinyalContainer.className = 'uk-grid uk-grid-small uk-child-width-expand';
 
+    // Determine active chain color (single mode) for header theme only
+    let chainColor = '#5c9514';
+    try {
+        const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+        if (m.type === 'single') {
+            const cfg = (window.CONFIG_CHAINS || {})[m.chain] || {};
+            if (cfg.WARNA) chainColor = cfg.WARNA;
+        }
+    } catch(_) {}
+
     dexList.forEach((dex, index) => {
         const gridItem = document.createElement('div');
         const card = document.createElement('div');
         card.className = 'uk-card uk-card-default uk-card-hover';
-        card.style.cssText = 'border-radius: 5px; overflow: hidden; border: 1px solid black; padding-bottom: 10px; margin-top: 10px;';
+        card.style.cssText = `border-radius: 5px; overflow: hidden; border: 1px solid ${chainColor}; padding-bottom: 10px; margin-top: 10px;`;
 
         const cardHeader = document.createElement('div');
         cardHeader.className = 'uk-card-header uk-padding-remove-vertical uk-padding-small';
-        cardHeader.style.cssText = 'background-color: #e5ebc6; height: 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid black;';
+        cardHeader.style.cssText = `background-color: ${chainColor}; color:#fff; height: 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid ${chainColor};`;
 
         const bodyId = `body-${String(dex).toLowerCase()}-${index}`;
         cardHeader.innerHTML = `
             <div class="uk-flex uk-flex-middle" style="gap:8px;">
-                <span class="uk-text-bold" style="color:black !important; font-size:14px;">${String(dex).toUpperCase()}</span>
+                <span class="uk-text-bold" style="color:#fff !important; font-size:14px;">${String(dex).toUpperCase()}</span>
             </div>
-            <a class="uk-icon-link uk-text-danger uk-text-bolder" uk-icon="chevron-up" uk-toggle="target: #${bodyId}"></a>
+            <a class="uk-icon-link uk-text-bolder" style="color:#fff;" uk-icon="chevron-up" uk-toggle="target: #${bodyId}"></a>
         `;
 
         const cardBody = document.createElement('div');
@@ -201,7 +211,41 @@ function loadSignalData() {
     });
 
     UIkit.update(sinyalContainer);
+
+    // Apply theme after building (handles dark/light without rebuilding cards)
+    try { if (typeof window.updateSignalTheme === 'function') window.updateSignalTheme(); } catch(_) {}
 }
+
+// Expose updater to switch theme for signal cards when dark mode toggles
+window.updateSignalTheme = function() {
+    try {
+        const isDark = document.body.classList.contains('dark-mode');
+        let chainColor = '#5c9514';
+        const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+        if (m.type === 'single') {
+            const cfg = (window.CONFIG_CHAINS || {})[m.chain] || {};
+            if (cfg.WARNA) chainColor = cfg.WARNA;
+        }
+        const container = document.getElementById('sinyal-container');
+        if (!container) return;
+        const cards = container.querySelectorAll('.uk-card');
+        cards.forEach(card => {
+            // Body warna: putih (light), abu-abu gelap (dark)
+            card.style.background = isDark ? '#e8e5e5ff' : '#d9d3d3ff';
+            card.style.color = isDark ? '#ffffff' : '#000000';
+            card.style.borderColor = chainColor;
+            const header = card.querySelector('.uk-card-header');
+            if (header) {
+                // Header warna: chainColor (light), hitam (dark)
+                header.style.backgroundColor = isDark ? '#000000' : chainColor;
+                header.style.color = '#ffffff';
+                header.style.borderBottom = isDark ? '1px solid #000000' : `1px solid ${chainColor}`;
+            }
+            const span = card.querySelector('[id^="sinyal"]');
+            if (span) span.style.color = isDark ? '#ffffff' : '#000000';
+        });
+    } catch(_) {}
+};
 
 /**
  * Opens and populates the 'Edit Koin' modal.

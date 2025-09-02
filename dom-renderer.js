@@ -1,6 +1,6 @@
 function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
     if (tableBodyId === 'dataTableBody') {
-        loadSignalData();
+        RenderCardSignal();
     }
     const tableBody = document.getElementById(tableBodyId);
 
@@ -483,7 +483,7 @@ function DisplayPNL(data) {
 
     let resultHtml;
     if (isHighlight) {
-        mainCell.style.cssText = "background-color:#94fa95!important;font-weight:bolder!important;color:black!important;vertical-align:middle!important;text-align:center!important;";
+        mainCell.style.cssText = "border:1px solid black;background-color:#94fa95!important;font-weight:bolder!important;color:black!important;vertical-align:middle!important;text-align:center!important;";
         const sinyals = `<a href="#${idPrefix}${baseId}" class='link-class'>${cex.toUpperCase()} VS ${dextype.toUpperCase()} : ${NameX} (${pnl.toFixed(2)}$)</a>`;
         toastr.success(sinyals);
 

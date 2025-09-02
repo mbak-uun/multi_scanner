@@ -402,91 +402,17 @@ function createLink(url, text, className = '') {
  * @returns {object} An object containing different URL types (trade, withdraw, deposit).
  */
 function GeturlExchanger(cex, NameToken, NamePair) {
-    // Check for undefined or null values
-    if (!NameToken || !NamePair) {
-        console.warn('Missing token names in GeturlExchanger:', { cex, NameToken, NamePair });
-        return {
-            tradeToken: '#',
-            tradePair: '#',
-            withdrawUrl: '#',
-            depositUrl: '#',
-            withdrawTokenUrl: '#',
-            depositTokenUrl: '#',
-            withdrawPairUrl: '#',
-            depositPairUrl: '#'
-        };
-    }
-
-    // Konversi nama token dan pasangan ke uppercase
-    const token = NameToken.toString().toUpperCase();
-    const pair = NamePair.toString().toUpperCase();
-
-    let baseUrlTradeToken = token === "USDT" ? "#" : null;
-    let baseUrlTradePair = pair === "USDT" ? "#" : null;
-    let baseUrlWithdraw = null;
-    let baseUrlDeposit = null;
-
-    // Menentukan URL berdasarkan nilai cex
-    if (cex === "GATE") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.gate.com/trade/${token}_USDT`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.gate.com/trade/${pair}_USDT`;
-        baseUrlWithdraw = `https://www.gate.com/myaccount/withdraw/${token}`;
-        baseUrlDeposit = `https://www.gate.com/myaccount/deposit/${pair}`;
-    } else if (cex === "BINANCE") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.binance.com/en/trade/${token}_USDT`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.binance.com/en/trade/${pair}_USDT`;
-        baseUrlWithdraw = `https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${token}`;
-        baseUrlDeposit = `https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${pair}`;
-    } else if (cex === "KUCOIN") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.kucoin.com/trade/${token}-USDT`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.kucoin.com/trade/${pair}-USDT`;
-        baseUrlWithdraw = `https://www.kucoin.com/assets/withdraw/${token}`;
-        baseUrlDeposit = `https://www.kucoin.com/assets/coin/${pair}`;
-    } else if (cex === "BITGET") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.bitget.com/spot/${token}USDT`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.bitget.com/spot/${pair}USDT`;
-        baseUrlWithdraw = `https://www.bitget.com/asset/withdraw`;
-        baseUrlDeposit = `https://www.bitget.com/asset/recharge`;
-    } else if (cex === "BYBIT") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.bybit.com/en/trade/spot/${token}/USDT`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.bybit.com/en/trade/spot/${pair}/USDT`;
-        baseUrlWithdraw = "https://www.bybit.com/user/assets/withdraw";
-        baseUrlDeposit = "https://www.bybit.com/user/assets/deposit";
-    } else if (cex === "MEXC") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.mexc.com/exchange/${token}_USDT?_from=search`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.mexc.com/exchange/${pair}_USDT?_from=search`;
-        baseUrlWithdraw = `https://www.mexc.com/assets/withdraw/${token}`;
-        baseUrlDeposit = `https://www.mexc.com/assets/deposit/${pair}`;
-    } else if (cex === "OKX") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.okx.com/trade-spot/${token}-usdt`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.okx.com/trade-spot/${pair}-usdt`;
-        baseUrlWithdraw = `https://www.okx.com/balance/withdrawal/${token}-chain`;
-        baseUrlDeposit = `https://www.okx.com/balance/recharge/${pair}`;
-    }
-    else if (cex === "BITMART") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://www.bitmart.com/trade/en-US?symbol=${token}_USDT&type=spot`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://www.bitmart.com/trade/en-US?symbol=${pair}_USDT&type=spot`;
-        baseUrlWithdraw = `https://www.bitmart.com/asset-withdrawal/en-US`;
-        baseUrlDeposit = `https://www.bitmart.com/asset-deposit/en-US`;
-    }
-    else if (cex === "INDODAX") {
-        if (baseUrlTradeToken !== "#") baseUrlTradeToken = `https://indodax.com/market/${token}IDR`;
-        if (baseUrlTradePair !== "#") baseUrlTradePair = `https://indodax.com/market/${pair}IDR`;
-        baseUrlWithdraw = `https://indodax.com/finance/${token}#kirim`;
-        baseUrlDeposit = `https://indodax.com/finance/${token}`;
-    }
-
+    try {
+        if (window.CEX && CEX.link && typeof CEX.link.buildAll === 'function') {
+            return CEX.link.buildAll(cex, NameToken, NamePair);
+        }
+    } catch(_) {}
+    // Fallback minimal object to keep UI functional if registry not loaded
     return {
-        tradeToken: baseUrlTradeToken,
-        tradePair: baseUrlTradePair,
-        // Back-compat fields (keep):
-        withdrawUrl: baseUrlWithdraw,
-        depositUrl: baseUrlDeposit,
-        // Standardized fields used by UI:
-        withdrawTokenUrl: baseUrlWithdraw,
-        depositTokenUrl: baseUrlDeposit,
-        withdrawPairUrl: baseUrlWithdraw,
-        depositPairUrl: baseUrlDeposit
+        tradeToken: '#', tradePair: '#',
+        withdrawUrl: '#', depositUrl: '#',
+        withdrawTokenUrl: '#', depositTokenUrl: '#',
+        withdrawPairUrl: '#', depositPairUrl: '#'
     };
 }
 
