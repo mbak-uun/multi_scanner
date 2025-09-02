@@ -18,7 +18,7 @@ let activeSingleChainKey = null; // To track the currently active single-chain v
 try {
     if (window.toastr) {
         window.toastr.options = Object.assign({}, window.toastr.options || {}, {
-            positionClass: 'toast-top-left',
+            positionClass: 'toast-top-right',
             preventDuplicates: true,
             newestOnTop: true,
             closeButton: true,
