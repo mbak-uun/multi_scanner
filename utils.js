@@ -320,9 +320,22 @@ function safeUrl(u, fallback) {
  * @returns {string} HTML string for the status.
  */
 function linkifyStatus(flag, label, urlOk, colorOk = 'green') {
-    if (flag === true) return `<a href="${urlOk}" target="_blank" class="uk-text-bold" style="color:${colorOk};">${label}</a>`;
-    if (flag === false) return `<span style="color:red; font-weight:bold;">${label === 'DP' ? 'DX' : 'WX'}</span>`;
-    return `<span style="color:black; font-weight:bold;">${label.replace('P', '-')}</span>`;
+    // Selalu pertahankan hyperlink bila URL tersedia; ubah hanya teks + warna
+    const safe = (u) => (u && /^https?:\/\//i.test(u)) ? u : '#';
+    let text = label;
+    let color = colorOk;
+    if (flag === true) {
+        text = label; // e.g., 'WD' / 'DP'
+        color = colorOk || 'green';
+    } else if (flag === false) {
+        text = (label === 'DP') ? 'DX' : 'WX';
+        color = 'red';
+    } else {
+        // Unknown / belum sinkron → tampilkan "WD ?" atau "DP ?"
+        text = `${label}?`;
+        color = 'black';
+    }
+    return `<a href="${safe(urlOk)}" target="_blank" rel="noopener noreferrer" class="uk-text-bold" style="color:${color};">${text}</a>`;
 }
 
 /**

@@ -96,9 +96,21 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
         rowHtml += `
             <td id="${idPrefix}${rowId}" class="uk-text-center uk-background uk-text-nowrap" style="text-align: center; border:1px solid black;">
                 [${index + 1}] <span style="color: ${warnaCex}; font-weight:bolder;">${data.cex} </span>
-                on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span> <span id="${idPrefix}EditMulti-${data.id}" data-id="${data.id}" title="UBAH DATA KOIN" uk-icon="icon: settings; ratio: 0.7" class="uk-text-primary uk-text-bolder edit-token-button" style="cursor:pointer"></span> <br/>
+                on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
+                <span id="${idPrefix}EditMulti-${data.id}" data-id="${data.id}" title="UBAH DATA KOIN" uk-icon="icon: settings; ratio: 0.7" class="uk-text-dark uk-text-bolder edit-token-button" style="cursor:pointer"></span>
+                <br/>
                 <span style="color: ${warnaChain}; font-weight:bolder;">${linkToken} </span>
-                ⇄ <span style="color: ${warnaChain}; font-weight:bolder;">${linkPair} </span><br/>
+                ⇄ <span style="color: ${warnaChain}; font-weight:bolder;">${linkPair} </span>
+                <span id="${idPrefix}DelMulti-${data.id}"
+                      data-id="${data.id}"
+                      data-chain="${String(data.chain).toLowerCase()}"
+                      data-cex="${String(data.cex).toUpperCase()}"
+                      data-symbol-in="${String(data.symbol_in).toUpperCase()}"
+                      data-symbol-out="${String(data.symbol_out).toUpperCase()}"
+                      title="HAPUS DATA KOIN"
+                      uk-icon="icon: trash; ratio: 0.6"
+                      class="uk-text-danger uk-text-bolder delete-token-button"
+                      style="cursor:pointer;"></span><br/>
                
                 <span class="uk-text-bolder">${WD_TOKEN} ~ ${DP_TOKEN}</span> |
                 <span class="uk-text-bolder">${WD_PAIR} ~ ${DP_PAIR}</span><br/>
@@ -423,6 +435,7 @@ function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
         volumesSellToken.map(data => renderVolume(data, 'uk-text-danger')).join('')
     );
 }
+
 function DisplayPNL(data) {
     const {
         profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype,
@@ -484,12 +497,39 @@ function DisplayPNL(data) {
     let resultHtml;
     if (isHighlight) {
         mainCell.style.cssText = "border:1px solid black;background-color:#94fa95!important;font-weight:bolder!important;color:black!important;vertical-align:middle!important;text-align:center!important;";
-        const sinyals = `<a href="#${idPrefix}${baseId}" class='link-class'>${cex.toUpperCase()} VS ${dextype.toUpperCase()} : ${NameX} (${pnl.toFixed(2)}$)</a>`;
-        toastr.success(sinyals);
+
+        // Resolve wallet status flags (deposit/withdraw) for current token+cex
+        let withdrawFlag = undefined;
+        let depositFlag = undefined;
+        try {
+            const mode = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+            const list = (mode.type === 'single') ? getTokensChain(mode.chain) : getTokensMulti();
+            const flat = Array.isArray(list) ? flattenDataKoin(list) : [];
+            const match = flat.find(t =>
+                String(t.cex).toUpperCase() === String(cex).toUpperCase() &&
+                String(t.chain).toLowerCase() === String(nameChain).toLowerCase() &&
+                String(t.symbol_in).toUpperCase() === String(Name_in).toUpperCase() &&
+                String(t.symbol_out).toUpperCase() === String(Name_out).toUpperCase()
+            );
+            if (match) {
+                withdrawFlag = !!match.withdrawToken; // WD relevan untuk token pada arah TokentoPair
+                depositFlag =  !!match.depositToken;  // DP relevan untuk token pada arah PairtoToken
+            }
+        } catch(_) {}
+
+        // Build WD/DP label yang sesuai status wallet:
+        // - Jika false: WD->WX (merah), DP->DX (merah)
+        // - Jika true: tautan normal ke halaman WD/DP
+        const wdLabel = (typeof linkifyStatus === 'function')
+            ? linkifyStatus(withdrawFlag, 'WD', urlsCEXToken.withdrawUrl, 'green')
+            : createLink(urlsCEXToken.withdrawUrl, 'WD');
+        const dpLabel = (typeof linkifyStatus === 'function')
+            ? linkifyStatus(depositFlag, 'DP', urlsCEXToken.depositUrl, 'green')
+            : createLink(urlsCEXToken.depositUrl, 'DP');
 
         let htmlFee = (trx === "TokentoPair")
-            ? `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.withdrawUrl,'WD')}<br/>`
-            : `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.depositUrl,'DP')}<br/>`;
+            ? `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${wdLabel}<br/>`
+            : `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${dpLabel}<br/>`;
 
         resultHtml =
             `${htmlFee}
@@ -497,8 +537,28 @@ function DisplayPNL(data) {
              <span class="uk-text-danger">SW: ${FeeSwap.toFixed(2)}$</span><br/>
              <span class="uk-text-success">GT: ${totalGet.toFixed(2)}$</span>
              <span class="uk-text-dark">PNL: ${pnl.toFixed(2)}$</span><br/>`;
+        // Tampilkan sinyal di panel sinyal
+        try { InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix); } catch(_) {}
 
-        InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix);
+        // Kirim sinyal ke Telegram hanya jika melampaui ambang PNL (sama dengan highlight di panel sinyal)
+        try {
+            if (Number(pnl) > Number(filterPNLValue)) {
+                const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
+                const tokenData = {
+                    chain: nameChain,
+                    symbol: Name_in,
+                    pairSymbol: Name_out,
+                    contractAddress: sc_input,
+                    pairContractAddress: sc_output
+                };
+                const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceBuyPair_CEX;
+                const priceSELL = (trx === 'TokentoPair') ? priceSellPair_CEX : priceSellToken_CEX;
+                const nickname = (typeof getFromLocalStorage === 'function') ? (getFromLocalStorage('SETTING_SCANNER', {})?.nickname || '') : '';
+                MultisendMessage(
+                    cex, dextype, tokenData, Modal, pnl, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction
+                );
+            }
+        } catch (e) { /* silent */ }
     } else {
         mainCell.style.cssText = "text-align: center; vertical-align: middle;";
         const pnlSpan = isSingleMode
@@ -512,8 +572,28 @@ function DisplayPNL(data) {
              <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
              ${pnlSpan}`;
 
+        // Non-highlight: tampilkan sinyal minimal jika profit > feeAll
         if (pnl > feeAll) {
-            InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix);
+            try { InfoSinyal(dextype.toLowerCase(), NameX, pnl, feeAll, cex.toUpperCase(), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix); } catch(_) {}
+            // Kirim Telegram hanya jika melampaui ambang filter PNL
+            try {
+                if (Number(pnl) > Number(filterPNLValue)) {
+                    const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
+                    const tokenData = {
+                        chain: nameChain,
+                        symbol: Name_in,
+                        pairSymbol: Name_out,
+                        contractAddress: sc_input,
+                        pairContractAddress: sc_output
+                    };
+                    const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceBuyPair_CEX;
+                    const priceSELL = (trx === 'TokentoPair') ? priceSellPair_CEX : priceSellToken_CEX;
+                    const nickname = (typeof getFromLocalStorage === 'function') ? (getFromLocalStorage('SETTING_SCANNER', {})?.nickname || '') : '';
+                    MultisendMessage(
+                        cex, dextype, tokenData, Modal, pnl, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction
+                    );
+                }
+            } catch (e) { /* silent */ }
         }
     }
 

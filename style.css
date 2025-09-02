@@ -79,6 +79,25 @@ a:hover, .uk-link:hover {
    Components
    ========================================================================== */
 
+/* Stabilize monitoring table layout to prevent jitter during scanning */
+#main-table {
+  table-layout: fixed;
+}
+#main-table th,
+#main-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Keep dex status text stable */
+#main-table .dex-status {
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Hidden row utility when deleting a token during scan */
+.row-hidden { display: none !important; }
+
 /* Header */
 .header-card {
     background: #ffffff;

@@ -237,11 +237,11 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     statusSpan.removeAttribute('title');
                                     statusSpan.classList.remove('uk-text-muted', 'uk-text-warning', 'uk-text-danger');
                                     if (status === 'checking') {
-                                        statusSpan.classList.add('uk-text-muted');
-                                        statusSpan.textContent = `Checking ${dexName.toUpperCase()}...`;
+                                        statusSpan.classList.add('uk-text-warning');
+                                        statusSpan.textContent = `Check ${dexName.toUpperCase()}`;
                                     } else if (status === 'fallback') {
                                         statusSpan.classList.add('uk-text-warning');
-                                        statusSpan.textContent = 'Scanning SWOOP...';
+                                        statusSpan.textContent = 'Check SWOOP';
                                         if (message) statusSpan.title = `Initial Error: ${message}`;
                                     } else if (status === 'error' || status === 'fallback_error') {
                                         cell.style.backgroundColor = '#ffcccc';
@@ -382,7 +382,18 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             tokenGroups.push(tokensToProcess.slice(i, i + scanPerKoin));
         }
 
+        // Inform user that app is checking GAS/GWEI per active chains
+        try {
+            $('#progress').text('CHECKING GAS / GWEI CHAINS...');
+            $('#progress-bar').css('width', '5%');
+            $('#progress-text').text('5%');
+        } catch(_) {}
         await feeGasGwei();
+        try {
+            $('#progress').text('GAS / GWEI CHAINS READY');
+            $('#progress-bar').css('width', '8%');
+            $('#progress-text').text('8%');
+        } catch(_) {}
         await getRateUSDT();
 
         for (let groupIndex = 0; groupIndex < tokenGroups.length; groupIndex++) {
