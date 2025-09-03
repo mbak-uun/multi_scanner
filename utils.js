@@ -455,12 +455,10 @@ function getChainData(chainName) {
     
     const managedChains = getManagedChains();
     if (!managedChains.includes(chainLower)) {
-        console.log(`Chain ${chainName} tidak termasuk dalam chain yang dikelola`);
         return null;
     }
     
     if (!chainData) {
-        console.log(`Chain dengan nama ${chainName} tidak ditemukan di CONFIG_CHAINS`);
         return null;
     }
 
@@ -480,6 +478,46 @@ function getChainData(chainName) {
     };
 }
 
+function _normalizeChainLabel(s){
+    return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+
+function resolveWalletChainBySynonym(walletInfo, chainKey, desiredLabel){
+    if (!walletInfo || typeof walletInfo !== 'object') return null;
+    const keys = Object.keys(walletInfo);
+    if (!keys.length) return null;
+    const normDesired = _normalizeChainLabel(desiredLabel||'');
+    // direct exact (normalized) match first
+    if (normDesired) {
+        const hit = keys.find(k => _normalizeChainLabel(k) === normDesired);
+        if (hit) return walletInfo[hit];
+    }
+    // synonym match by chainKey catalogue
+    let cat = [];
+    try {
+        cat = ((typeof window !== 'undefined' && window.CHAIN_SYNONYMS) ? window.CHAIN_SYNONYMS : (typeof CHAIN_SYNONYMS !== 'undefined' ? CHAIN_SYNONYMS : {}))[ String(chainKey||'').toLowerCase() ] || [];
+    } catch(_) { cat = []; }
+    const candidates = new Set(cat.map(_normalizeChainLabel));
+    candidates.add(_normalizeChainLabel(chainKey));
+    // try any key that matches synonyms
+    for (const k of keys) {
+        const nk = _normalizeChainLabel(k);
+        if (candidates.has(nk)) return walletInfo[k];
+    }
+    // loose contains match (e.g., BASEMAINNET contains BASE)
+    for (const k of keys) {
+        const nk = _normalizeChainLabel(k);
+        for (const s of candidates) { if (nk.includes(s)) return walletInfo[k]; }
+    }
+    return null;
+}
+
+try {
+    if (typeof window !== 'undefined') {
+        window.resolveWalletChainBySynonym = window.resolveWalletChainBySynonym || resolveWalletChainBySynonym;
+    }
+} catch(_){}
+
 /**
  * Retrieves configuration data for a specific CEX.
  * @param {string} cexName - The name of the CEX (e.g., 'BINANCE').
@@ -492,7 +530,6 @@ function getCexDataConfig(cexName) {
     const cexData = (typeof CONFIG_CEX === 'object' && CONFIG_CEX[key]) ? CONFIG_CEX[key] : null;
 
     if (!cexData) {
-        console.log(`CEX dengan nama ${cexName} tidak ditemukan di CONFIG_CEX`);
         return null;
     }
 
@@ -520,7 +557,6 @@ function getDexData(dexName) {
     const dexConfig = (typeof CONFIG_DEXS === 'object') ? CONFIG_DEXS[dexKey] : undefined;
 
     if (!dexConfig) {
-        console.log(`DEX dengan nama ${dexName} tidak ditemukan di CONFIG_DEXS`);
         return null;
     }
 

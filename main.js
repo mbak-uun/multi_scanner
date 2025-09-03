@@ -80,7 +80,7 @@ function attachEditButtonListeners() {
                 setTokensChain(mode.chain, list);
                 if (list.length < before) {
                     try { setLastAction(`HAPUS KOIN [${String(mode.chain).toUpperCase()}]`); } catch(_) {}
-                    toastr.info('PROSES HAPUS KOIN BERHASIL');
+                    toastr.info(`PROSES HAPUS KOIN ${symIn} VS ${symOut} BERHASIL`);
                 }
                 // Sembunyikan baris pada tabel berjalan agar hasil scan lain tidak hilang
                 try { $el.closest('tr').addClass('row-hidden'); } catch(_) {}
@@ -91,7 +91,7 @@ function attachEditButtonListeners() {
                 setTokensMulti(list);
                 if (list.length < before) {
                     try { setLastAction('HAPUS KOIN [MULTICHAIN]'); } catch(_) {}
-                    toastr.info('PROSES HAPUS KOIN BERHASIL');
+                   toastr.info(`PROSES HAPUS KOIN ${symIn} VS ${symOut} BERHASIL`);
                 }
                 // Sembunyikan baris pada tabel berjalan agar hasil scan lain tidak hilang
                 try { $el.closest('tr').addClass('row-hidden'); } catch(_) {}
@@ -800,7 +800,7 @@ function deferredInit() {
 
     // Deprecated modal handler removed; settings now inline
 
-    // searchInput moved to filter card; handler defined below (global search)
+    // Global search handler (filter card)
 
     $('.posisi-check').on('change', function () {
         if ($('.posisi-check:checked').length === 0) {
@@ -822,6 +822,29 @@ function deferredInit() {
     $("#stopSCAN").click(function () {
         stopScanner();
     });
+
+    // Autorun toggle
+    try {
+        window.AUTORUN_ENABLED = false;
+        $(document).on('change', '#autoRunToggle', function(){
+            window.AUTORUN_ENABLED = $(this).is(':checked');
+            if (!window.AUTORUN_ENABLED) {
+                // cancel any pending autorun countdown
+                try { clearInterval(window.__autoRunInterval); } catch(_) {}
+                window.__autoRunInterval = null;
+                // clear countdown label
+                $('#autoRunCountdown').text('');
+                // restore UI to idle state if not scanning
+                try {
+                    $('#stopSCAN').hide().prop('disabled', true);
+                    $('#startSCAN').prop('disabled', false).removeClass('uk-button-disabled').text('Start');
+                    $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle, .edit-token-button").css("pointer-events", "auto").css("opacity", "1");
+                    if (typeof setScanUIGating === 'function') setScanUIGating(false);
+                    $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 });
+                } catch(_) {}
+            }
+        });
+    } catch(_) {}
 
     // Cancel button in inline settings: hide form and restore main sections
     $(document).on('click', '#btn-cancel-setting', function () {
@@ -1550,7 +1573,7 @@ $(document).ready(function() {
             $('#scanner-config, #sinyal-container, #header-table').show();
             $('#dataTableBody').closest('.uk-overflow-auto').show();
             activeSingleChainKey = null;
-            // legacy containers removed; filter card handles UI
+            // Filter card handles UI
             const st = getAppState();
             setHomeHref(st.lastChain || getDefaultChain());
             try { applySortToggleState(); } catch(_) {}
@@ -1569,7 +1592,7 @@ $(document).ready(function() {
         const chainConfig = CONFIG_CHAINS[requested];
         $('#scanner-config, #sinyal-container, #header-table').show();
         $('#dataTableBody').closest('.uk-overflow-auto').hide();
-        // legacy containers removed; filter card handles UI
+        // Filter card handles UI
         $('#single-chain-title').text(`Scanner: ${chainConfig.Nama_Chain || requested.toUpperCase()}`);
         $('#single-chain-view').show();
         setHomeHref(requested);
@@ -1612,7 +1635,7 @@ $(document).ready(function() {
         });
     }
 
-    // Single-chain filter builders - DEPRECATED/REMOVED
+    // Single-chain filter builders are removed (unified filter card is used)
     // function renderSingleChainFilters(chainKey) { ... }
 
     // Helpers: Sync filters + table render (global, used by deferredInit handlers)

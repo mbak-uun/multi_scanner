@@ -1,4 +1,5 @@
 
+    /** Get a JSON value from localStorage under app namespace. */
     function getFromLocalStorage(key, defaultValue) {
         try {
             const raw = localStorage.getItem(storagePrefix + key);
@@ -10,7 +11,7 @@
         }
     }
 
-    // Fungsi umum untuk menyimpan data ke localStorage
+    /** Save a JSON value to localStorage under app namespace. */
     function saveToLocalStorage(key, value) {
         try {
             localStorage.setItem(storagePrefix + key, JSON.stringify(value));
@@ -31,10 +32,9 @@
         }
     }
 
-    // Fungsi untuk menghapus item dari localStorage
+    /** Remove a key under app namespace from localStorage. */
     function removeFromLocalStorage(key) {
         localStorage.removeItem(storagePrefix + key);
-       // console.log("Remove from localStorage:", key); // Debug log
     }
 
    // ============================

@@ -6,12 +6,15 @@ let animationFrameId;
 let isScanRunning = false;
 
 /**
- * Starts the scanning process for a given list of tokens.
- * @param {Array} tokensToScan - The flat list of tokens to be scanned.
- * @param {Object} settings - The application settings from storage.
- * @param {string} tableBodyId - The ID of the table body to update.
+ * Start the scanning process for a flattened list of tokens.
+ * - Batches tokens per group (scanPerKoin)
+ * - For each token: fetch CEX orderbook → quote DEX routes → compute PNL → update UI
  */
 async function startScanner(tokensToScan, settings, tableBodyId) {
+    // Cancel any pending autorun countdown when a new scan starts
+    try { clearInterval(window.__autoRunInterval); } catch(_) {}
+    window.__autoRunInterval = null;
+    try { $('#autoRunCountdown').text(''); } catch(_) {}
     const lastAction = getFromLocalStorage('HISTORY', {});
     if (lastAction && lastAction.action && lastAction.time) {
         $('#infoAPP').text(`${lastAction.action} at ${lastAction.time}`);
@@ -278,17 +281,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         direction, 0, finalDexRes
                                     );
                                     // Console log summary for this check
-                                    try {
-                                        const pairLine = `${(update.Name_in||'').toUpperCase()}->${(update.Name_out||'').toUpperCase()} on ${(update.nameChain||'').toUpperCase()}`;
-                                        const routeLine = `${(update.cex||'').toUpperCase()}->${String(update.dextype||dex).toUpperCase()}`;
-                                        const modalLine = `modal ${Number(update.Modal||0)}$`;
-                                        const buyPrice = update.trx === 'TokentoPair' ? update.priceBuyToken_CEX : update.priceBuyPair_CEX;
-                                        const sellPrice = update.trx === 'TokentoPair' ? update.priceSellPair_CEX : update.priceSellToken_CEX;
-                                        const buyLine = `buy : ${Number(buyPrice||0)}$`;
-                                        const sellLine = `sell : ${Number(sellPrice||0)}$`;
-                                        const pnlLine = `PNL : ${Number(update.profitLoss||0).toFixed(4)}$`;
-                                        console.log(`${pairLine}\n${routeLine}\n${modalLine}\n${buyLine}\n${sellLine}\n${pnlLine}\n----------------------`);
-                                    } catch(_) {}
+            // Debug logs removed for production cleanliness
+            try { /* no-op */ } catch(_) {}
                                     uiUpdateQueue.push(update);
                                 };
 
@@ -397,7 +391,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         await getRateUSDT();
 
         for (let groupIndex = 0; groupIndex < tokenGroups.length; groupIndex++) {
-            if (!isScanRunning) { console.log("Scan stopped by user."); break; }
+            if (!isScanRunning) { break; }
             const groupTokens = tokenGroups[groupIndex];
 
             if ($('#autoScrollCheckbox').is(':checked') && groupTokens.length > 0) {
@@ -445,6 +439,40 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch(_) {}
         try { $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 }); } catch(_) {}
         setAppState({ run: 'NO' });
+
+        // Schedule autorun if enabled
+        try {
+            if (window.AUTORUN_ENABLED === true) {
+                const total = 10; // seconds
+                let remain = total;
+                const $cd = $('#autoRunCountdown');
+                // Disable UI while waiting, similar to running state
+                try {
+                    $('#startSCAN').prop('disabled', true).addClass('uk-button-disabled');
+                    $('#stopSCAN').show().prop('disabled', false);
+                    $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle, .edit-token-button').css({ pointerEvents: 'none', opacity: 0.4 });
+                    if (typeof setScanUIGating === 'function') setScanUIGating(true);
+                    const $allToolbar = $('.header-card a, .header-card .icon');
+                    $allToolbar.css({ pointerEvents: 'none', opacity: 0.4 });
+                    $('#reload, #darkModeToggle').css({ pointerEvents: 'auto', opacity: 1 });
+                } catch(_) {}
+                const tick = () => {
+                    if (!window.AUTORUN_ENABLED) { clearInterval(window.__autoRunInterval); window.__autoRunInterval=null; return; }
+                    try { $cd.text(`AutoRun ${remain}s`).css({ color: '#e53935', fontWeight: 'bold' }); } catch(_) {}
+                    remain -= 1;
+                    if (remain < 0) {
+                        clearInterval(window.__autoRunInterval);
+                        window.__autoRunInterval = null;
+                        try { $cd.text('').css({ color: '', fontWeight: '' }); } catch(_) {}
+                        // Trigger new scan using current filters/selection
+                        $('#startSCAN').trigger('click');
+                    }
+                };
+                try { clearInterval(window.__autoRunInterval); } catch(_) {}
+                window.__autoRunInterval = setInterval(tick, 1000);
+                tick();
+            }
+        } catch(_) {}
     }
 
     processTokens(flatTokens, tableBodyId);
@@ -457,6 +485,8 @@ function stopScanner() {
     isScanRunning = false;
     cancelAnimationFrame(animationFrameId);
     setAppState({ run: 'NO' });
+    try { clearInterval(window.__autoRunInterval); } catch(_) {}
+    window.__autoRunInterval = null;
     form_on();
     location.reload(); // The original stop logic reloads the page.
 }

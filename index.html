@@ -46,7 +46,7 @@
 
                 <!-- Kanan: Toolbar icon -->
                 <div class="uk-width-auto@s uk-width-1-1">
-                    <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s toolbar-scroll" style="gap: 6px;">                        
+                    <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s toolbar-scroll" style="gap: 7px; padding:0px 10px;">                        
                          <a href="index.html?chain=all" id="multichain_scanner" ><img class="icon" title="SCANNER MUTLTICHAIN" width="24px" src="https://cdn-icons-png.flaticon.com/512/8897/8897593.png" /></a>
                         <span id="chain-links-container"></span>
                          
@@ -96,7 +96,10 @@
                 <!-- KOLOM KIRI: semua kontrol kecuali Search -->
                 <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
                 <span class=" uk-text-bolder">SCANNER:</span>
-
+                <label class="uk-margin-small-left">
+                    <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
+                    <span class="uk-text-primary">Auto Run</span>
+                </label>
                 <label class="uk-margin-small-left">
                     <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
                     <span class="uk-text-danger">Vol Check</span>
@@ -128,12 +131,14 @@
                 <div class="uk-button-group uk-margin-small-left">
                     <button type="button" id="startSCAN" data-feature="scan" class="uk-button uk-button-secondary uk-button-small">START</button>
                     <button type="button" id="stopSCAN" data-feature="scan" style="display:none;" class="uk-button uk-button-danger uk-button-small">STOP</button>
+                    
                 </div>
                 </div>
 
                 <!-- KOLOM KANAN: Search, rata kanan ≥ @m -->
                 <div class="uk-width-1-1 uk-width-auto@m">
                     <div class="uk-flex uk-flex-right@m uk-flex-middle uk-flex-wrap">
+                        <span id="autoRunCountdown" class="uk-text-meta uk-margin-small-right" style="min-width:64px; display:inline-block;"></span>
 
                         <label class="uk-margin-small-left uk-flex uk-flex-middle">
                         <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">

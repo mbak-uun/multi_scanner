@@ -2,18 +2,6 @@
 // API AND NETWORK FUNCTIONS
 // =================================================================================
 
-// moved to services/cex.js
-
-// ====== Fungsi Universal untuk Orderbook CEX ======
-// moved to services/cex.js: processOrderBook
-
-
-// ====== Fungsi Khusus untuk INDODAX ======
-// moved to services/cex.js: processIndodaxOrderBook
-
-// ====== Konfigurasi Exchange ======
-// moved to services/cex.js: exchangeConfig
-
 
 /**
  * Fetches the order book for a token pair from a CEX.
@@ -26,7 +14,8 @@
  */
 
 /**
- * Fetches USDT/IDR rate from Tokocrypto via a proxy.
+ * Fetch USDT/IDR rate from Tokocrypto and cache to localStorage.
+ * Stores 'PRICE_RATE_USDT' for IDR conversions (e.g., INDODAX display).
  */
 function getRateUSDT() {
     const url = "https://cloudme-toko.2meta.app/api/v1/depth?symbol=USDTIDR&limit=5";
@@ -54,7 +43,8 @@ function getRateUSDT() {
 }
 
 /**
- * Fetches gas fees for all configured chains.
+ * Fetch gas metrics (gwei and USD) for active chains and cache to 'ALL_GAS_FEES'.
+ * Resolves chain list based on current app mode and filters.
  */
 async function feeGasGwei() {
     // Determine which chains to fetch gas for (mode-aware)
@@ -103,7 +93,11 @@ async function feeGasGwei() {
 }
 
 /**
- * Calculates the API signature for a given exchange.
+ * Calculate HMAC signature for CEX API requests.
+ * @param {string} exchange - Exchange key (e.g., BINANCE, MEXC, OKX)
+ * @param {string} apiSecret - Secret key
+ * @param {string} dataToSign - Raw query string/body
+ * @returns {string|null} signature
  */
 function calculateSignature(exchange, apiSecret, dataToSign) {
     if (!apiSecret || !dataToSign) return null;
@@ -113,7 +107,9 @@ function calculateSignature(exchange, apiSecret, dataToSign) {
 }
 
 /**
- * Returns a random API key for OKX DEX from the pool.
+ * Pick a random OKX Web3 DEX API key from pool.
+ * @param {Array<{ApiKeyOKX:string}>} keys
+ * @returns {any}
  */
 function getRandomApiKeyOKX(keys) {
     if (!keys || keys.length === 0) {
@@ -123,7 +119,7 @@ function getRandomApiKeyOKX(keys) {
 }
 
 /**
- * Sends a status message to Telegram.
+ * Send a compact status message to Telegram (startup/online, etc.).
  */
 function sendStatusTELE(user, status) {
     const message = `<b>#MULTISCANNER</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>`;
@@ -133,7 +129,8 @@ function sendStatusTELE(user, status) {
 }
 
 /**
- * Sends a detailed arbitrage signal message to Telegram.
+ * Send a detailed arbitrage signal message to Telegram.
+ * Links include CEX trade pages and DEX aggregator swap link.
  */
 function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction) {
     const chainConfig = CONFIG_CHAINS[String(tokenData.chain || '').toLowerCase()];
@@ -150,7 +147,41 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
     const urls = GeturlExchanger(cex.toUpperCase(), fromSymbol, toSymbol) || {};
     const linkCEX = `<a href="${urls.tradeToken || '#'}">${cex.toUpperCase()}</a>`;
 
-    const message = `<b>#MULTISCANNER #${chainConfig.Nama_Chain.toUpperCase()}</b>\n<b>USER:</b> ~ ${nickname||'-'}\n-----------------------------------------\n<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n<b>TOKEN-PAIR:</b> <b>#<a href="${urls.tradeToken||'#'}">${fromSymbol}</a>_<a href="${urls.tradePair||'#'}">${toSymbol}</a></b>\n<b>MODAL:</b> $${modal} | <b>PROFIT:</b> ${PNL.toFixed(2)}$\n<b>BUY:</b> ${linkBuy} @ ${Number(priceBUY)||0}\n<b>SELL:</b> ${linkSell} @ ${Number(priceSELL)||0}\n<b>FEE WD:</b> ${Number(FeeWD).toFixed(3)}$\n<b>FEE TOTAL:</b> $${Number(totalFee).toFixed(2)} | <b>SWAP:</b> $${Number(FeeSwap).toFixed(2)}\n-----------------------------------------`;
+    // Resolve deposit/withdraw statuses from localStorage (flattened tokens)
+    const chainKey = String(tokenData.chain||'').toLowerCase();
+    let depTok, wdTok, depPair, wdPair;
+    try {
+        const listChain = (typeof getTokensChain === 'function') ? getTokensChain(chainKey) : [];
+        const listMulti = (typeof getTokensMulti === 'function') ? getTokensMulti() : [];
+        const flat = ([])
+            .concat(Array.isArray(listChain)? listChain : [])
+            .concat(Array.isArray(listMulti)? listMulti : []);
+        const flatAll = (typeof flattenDataKoin === 'function') ? flattenDataKoin(flat) : [];
+        const match = (flatAll || []).find(e =>
+            String(e.cex||'').toUpperCase() === String(cex||'').toUpperCase() &&
+            String(e.chain||'').toLowerCase() === chainKey &&
+            String(e.symbol_in||'').toUpperCase() === String(tokenData.symbol||'').toUpperCase() &&
+            String(e.symbol_out||'').toUpperCase() === String(tokenData.pairSymbol||'').toUpperCase()
+        );
+        if (match) {
+            depTok = match.depositToken; wdTok = match.withdrawToken; depPair = match.depositPair; wdPair = match.withdrawPair;
+        }
+    } catch(_) {}
+    const f = (v) => (v===true ? '✅' : (v===false ? '❌' : '❓'));
+
+    const message = `<b>#MULTISCANNER #${chainConfig.Nama_Chain.toUpperCase()}</b>\n`+
+    `<b>USER:</b> ~ ${nickname||'-'}\n`+
+    `-----------------------------------------\n`+
+    `<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n`+
+    `<b>TOKEN-PAIR:</b> <b>#<a href=\"${urls.tradeToken||'#'}\">${fromSymbol}</a>_<a href=\"${urls.tradePair||'#'}\">${toSymbol}</a></b>\n`+
+    `<b>MODAL:</b> $${modal} | <b>PROFIT:</b> ${PNL.toFixed(2)}$\n`+
+    `<b>BUY:</b> ${linkBuy} @ ${Number(priceBUY)||0}\n`+
+    `<b>SELL:</b> ${linkSell} @ ${Number(priceSELL)||0}\n`+
+    `<b>FEE WD:</b> ${Number(FeeWD).toFixed(3)}$\n`+
+    `<b>FEE TOTAL:</b> $${Number(totalFee).toFixed(2)} | <b>SWAP:</b> $${Number(FeeSwap).toFixed(2)}\n`+
+    `<b>STATUS TOKEN:</b> WD ${f(wdTok)} | DP ${f(depTok)}\n`+
+    `<b>STATUS PAIR:</b> WD ${f(wdPair)} | DP ${f(depPair)}\n`+
+    `-----------------------------------------`;
     const url = `https://api.telegram.org/bot${CONFIG_TELEGRAM.BOT_TOKEN}/sendMessage`;
     const payload = { chat_id: CONFIG_TELEGRAM.CHAT_ID, text: message, parse_mode: "HTML", disable_web_page_preview: true };
     $.post(url, payload);
@@ -162,240 +193,6 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
 const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 function infoSet(msg){ try{$('#infoAPP').html(msg);}catch(_){} console.log('📢', msg); }
 function infoAdd(msg){ try{$('#infoAPP').html(`${$('#infoAPP').html()}<br>${msg}`);}catch(_){} console.log('📌', msg); }
-
-// =================================================================================
-// Universal CEX Wallet Fetcher
-// =================================================================================
-async function fetchWalletStatus(cex) {
-    const cfg = CONFIG_CEX?.[cex];
-    if (!cfg || !cfg.ApiKey || !cfg.ApiSecret) {
-        throw new Error(`${cex} API Key/Secret not configured in CONFIG_CEX.`);
-    }
-    const { ApiKey, ApiSecret } = cfg;
-
-    const timestamp = Date.now();
-
-    switch (cex) {
-        case 'BINANCE': {
-            const query = `timestamp=${timestamp}`;
-            const sig = calculateSignature("BINANCE", ApiSecret, query, "HmacSHA256");
-            const url = `https://proxykanan.awokawok.workers.dev/?https://api-gcp.binance.com/sapi/v1/capital/config/getall?${query}&signature=${sig}`;
-            const response = await $.ajax({ url, headers: { "X-MBX-ApiKey": ApiKey } });
-            return response.flatMap(item =>
-                (item.networkList || []).map(net => ({
-                    cex,
-                    tokenName: item.coin,
-                    chain: net.network,
-                    feeWDs: parseFloat(net.withdrawFee || 0),
-                    depositEnable: !!net.depositEnable,
-                    withdrawEnable: !!net.withdrawEnable
-                }))
-            );
-        }
-
-        case 'MEXC': {
-            const query = `recvWindow=5000&timestamp=${timestamp}`;
-            const sig = calculateSignature("MEXC", ApiSecret, query);
-            const url = `https://proxykiri.awokawok.workers.dev/?https://api.mexc.com/api/v3/capital/config/getall?${query}&signature=${sig}`;
-            const response = await $.ajax({ url, headers: { "X-MEXC-APIKEY": ApiKey } });
-            return response.flatMap(item =>
-                (item.networkList || []).map(net => ({
-                    cex,
-                    tokenName: item.coin,
-                    // Be defensive with field name variations
-                    chain: net.network || net.netWork || net.chain || net.name || '',
-                    feeWDs: parseFloat(net.withdrawFee || 0),
-                    depositEnable: !!net.depositEnable,
-                    withdrawEnable: !!net.withdrawEnable
-                }))
-            );
-        }
-
-        case 'GATE': {
-            const host = "https://cors-anywhere.herokuapp.com/https://api.gateio.ws";
-            const prefix = "/api/v4";
-            const ts = Math.floor(Date.now() / 1000);
-
-            function gateSign(method, path, query = "", body = "") {
-                const hashedBody = CryptoJS.SHA512(body).toString(CryptoJS.enc.Hex);
-                const payload = `${method}\n${path}\n${query}\n${hashedBody}\n${ts}`;
-                return CryptoJS.HmacSHA512(payload, ApiSecret).toString(CryptoJS.enc.Hex);
-            }
-
-            // 🔹 Withdraw status (private)
-            const wdPath = "/wallet/withdraw_status";
-            const wdHeaders = {
-                KEY: ApiKey,
-                SIGN: gateSign("GET", prefix + wdPath, "", ""),
-                Timestamp: ts
-            };
-            const wdData = await $.ajax({ url: `${host}${prefix}${wdPath}`, headers: wdHeaders });
-
-            // 🔹 Spot currencies (public)
-            const statusData = await $.ajax({ url: `${host}${prefix}/spot/currencies` });
-
-            return statusData.flatMap(item =>
-                (item.chains || []).map(chain => {
-                    const feeItem = wdData.find(f =>
-                        f.currency?.toUpperCase() === item.currency?.toUpperCase() &&
-                        f.withdraw_fix_on_chains?.[chain.name]
-                    );
-                    return {
-                        cex,
-                        tokenName: item.currency,
-                        chain: chain.name,
-                        feeWDs: feeItem ? parseFloat(feeItem.withdraw_fix_on_chains[chain.name]) : 0,
-                        depositEnable: !chain.deposit_disabled,
-                        withdrawEnable: !chain.withdraw_disabled
-                    };
-                })
-            );
-        }
-
-        default:
-            return [];
-    }
-}
-
-// =================================================================================
-// Orchestrator & Data Management
-// =================================================================================
-
-/**
- * Applies the centrally stored wallet statuses to a given token list in localStorage.
- * @param {string} tokenListName - The key of the token list in localStorage (e.g., 'TOKEN_SCANNER').
- */
-function applyWalletStatusToTokenList(tokenListName) {
-    const allWalletStatus = getFromLocalStorage('CEX_WALLET_STATUS', {});
-    if (Object.keys(allWalletStatus).length === 0) {
-        console.warn("No wallet status data available to apply.");
-        return;
-    }
-
-    let tokens = getFromLocalStorage(tokenListName, []);
-    if (!tokens || tokens.length === 0) {
-        infoAdd(`ℹ️ No tokens found in '${tokenListName}' to update.`);
-        return;
-    }
-
-    const updatedTokens = tokens.map(token => {
-        const updatedDataCexs = { ...(token.dataCexs || {}) };
-        (token.selectedCexs || Object.keys(CONFIG_CEX)).forEach(cexKey => {
-            const walletForCex = allWalletStatus[cexKey.toUpperCase()];
-            if (!walletForCex) return;
-
-            const chainLabelForCEX = getChainData(token.chain)?.CEXCHAIN?.[cexKey]?.chainCEX?.toUpperCase() || '';
-
-            const updateForSymbol = (symbol, isTokenIn) => {
-                if (!symbol) return;
-                const symbolUpper = symbol.toUpperCase();
-                const walletInfo = walletForCex[symbolUpper];
-                // Match the specific chain required by the CEX for this token
-                const match = walletInfo ? walletInfo[chainLabelForCEX] : null;
-
-                if (match) {
-                    updatedDataCexs[cexKey] = updatedDataCexs[cexKey] || {};
-                    const feeField = isTokenIn ? 'feeWDToken' : 'feeWDPair';
-                    const depositField = isTokenIn ? 'depositToken' : 'depositPair';
-                    const withdrawField = isTokenIn ? 'withdrawToken' : 'withdrawPair';
-
-                    updatedDataCexs[cexKey][feeField] = String(match.feeWDs || '0');
-                    updatedDataCexs[cexKey][depositField] = !!match.depositEnable;
-                    updatedDataCexs[cexKey][withdrawField] = !!match.withdrawEnable;
-                }
-            };
-            updateForSymbol(token.symbol_in, true);
-            updateForSymbol(token.symbol_out, false);
-        });
-        return { ...token, dataCexs: updatedDataCexs };
-    });
-
-    saveToLocalStorage(tokenListName, updatedTokens);
-    infoAdd(`💾 ${updatedTokens.length} tokens in '${tokenListName}' were updated.`);
-}
-
-
-/**
- * Fetches wallet statuses from all CEXs, stores them centrally, and applies them to token lists.
- */
-async function checkAllCEXWallets() {
-    $('#loadingOverlay').fadeIn(150);
-    infoSet('🚀 Memulai pengecekan DATA CEX...');
-
-    // Limit wallet checks based on active filters
-    let selectedCexes = Object.keys(CONFIG_CEX || {});
-    try {
-        const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
-        if (m.type === 'multi' && typeof getFilterMulti === 'function') {
-            const fm = getFilterMulti();
-            if (fm && Array.isArray(fm.cex) && fm.cex.length) selectedCexes = fm.cex.map(String);
-        } else if (m.type === 'single' && typeof getFilterChain === 'function') {
-            const fc = getFilterChain(m.chain || '');
-            if (fc && Array.isArray(fc.cex) && fc.cex.length) selectedCexes = fc.cex.map(String);
-        }
-    } catch(_) {}
-    if (!selectedCexes.length) {
-        infoSet('⚠ Tidak ada CEX yang dikonfigurasi.');
-        $('#loadingOverlay').fadeOut(150);
-        return;
-    }
-
-    const fetchJobs = selectedCexes.map(cex =>
-        fetchWalletStatus(cex).catch(err => {
-            console.error(`❌ ${cex} gagal:`, err);
-            infoAdd(`❌ ${cex} GAGAL (${err.message})`);
-            return { error: true, cex, message: err.message };
-        })
-    );
-
-    const results = await Promise.all(fetchJobs);
-    const failed = results.filter(r => r.error);
-
-    if (failed.length > 0) {
-        alert(`❌ GAGAL UPDATE WALLET EXCHANGER.\n${failed.map(f => `- ${f.cex}: ${f.message}`).join('\n')}`);
-        $('#loadingOverlay').fadeOut(150);
-        return;
-    }
-
-    // Re-structure the flat array into a nested object for efficient lookups: CEX -> Token -> Chain
-    const walletStatusByCex = {};
-    results.flat().forEach(item => {
-        if (!item) return;
-        const { cex, tokenName, chain, ...rest } = item;
-        const ucCex = cex.toUpperCase();
-        const ucToken = tokenName.toUpperCase();
-        const ucChain = chain.toUpperCase();
-
-        if (!walletStatusByCex[ucCex]) {
-            walletStatusByCex[ucCex] = {};
-        }
-        if (!walletStatusByCex[ucCex][ucToken]) {
-            walletStatusByCex[ucCex][ucToken] = {};
-        }
-        walletStatusByCex[ucCex][ucToken][ucChain] = rest;
-    });
-
-    saveToLocalStorage('CEX_WALLET_STATUS', walletStatusByCex);
-    infoAdd(`✅ Data wallet terpusat dari ${selectedCexes.join(', ')} berhasil diambil dan disimpan.`);
-
-    // Apply to active token list (mode-aware)
-    try {
-        const key = (typeof getActiveTokenKey === 'function') ? getActiveTokenKey() : 'TOKEN_MULTICHAIN';
-        applyWalletStatusToTokenList(key);
-    } catch(_) {}
-
-    setLastAction("UPDATE WALLET EXCHANGER");
-    alert('✅ BERHASIL\nData wallet & fee telah diperbarui.');
-
-    // Refresh the UI without a full reload, depending on which view is active
-    if ($('#single-chain-view').is(':visible')) {
-        if (typeof loadAndDisplaySingleChainTokens === 'function') loadAndDisplaySingleChainTokens();
-    } else {
-        if (typeof refreshTokensTable === 'function') refreshTokensTable();
-    }
-
-    $('#loadingOverlay').fadeOut(150);
-}
 
 // =================================================================================
 // CEX Shims (final override to delegate to services)

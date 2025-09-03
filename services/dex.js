@@ -1,6 +1,11 @@
 // =================================================================================
 // DEX Service Module (moved intact) — Pindahkan utuh + shim
 // =================================================================================
+/**
+ * DEX Service Module
+ * - Strategy-based price quoting per aggregator (Kyber, 1inch, 0x/Matcha, Odos, OKX, LiFi)
+ * - getPriceDEX builds request and parses response per DEX
+ */
 (function initDEXService(global){
   const root = global || (typeof window !== 'undefined' ? window : {});
   const App = root.App || (root.App = {});
@@ -127,6 +132,10 @@
   // alias
   dexStrategies.lifi = dexStrategies['1inch'];
 
+  /**
+   * Quote swap output from a DEX aggregator.
+   * Builds request by strategy, applies timeout, and returns parsed amounts.
+   */
   function getPriceDEX(sc_input_in, des_input, sc_output_in, des_output, amount_in, PriceRate, dexType, NameToken, NamePair, cex, chainName, codeChain, action, tableBodyId) {
     return new Promise((resolve, reject) => {
       const sc_input = sc_input_in.toLowerCase();
@@ -174,6 +183,9 @@
     });
   }
 
+  /**
+   * Optional fallback quoting via external SWOOP service.
+   */
   function getPriceSWOOP(sc_input, des_input, sc_output, des_output, amount_in, PriceRate, dexType, NameToken, NamePair, cex, nameChain, codeChain, action) {
     return new Promise((resolve, reject) => {
       const SavedSettingData = getFromLocalStorage('SETTING_SCANNER', {});

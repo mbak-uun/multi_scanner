@@ -3,8 +3,8 @@
 // =================================================================================
 
 /**
- * Enables or disables form controls based on the application's readiness state.
- * @param {string} state - The current state ('READY', 'MISSING_SETTINGS', etc.).
+ * Gate interactive UI controls based on readiness state (settings/tokens).
+ * @param {string} state - 'READY'|'MISSING_SETTINGS'|'MISSING_TOKENS'|'MISSING_BOTH'
  */
 function applyControlsFor(state) {
     const $form   = $("#FormScanner");
@@ -118,9 +118,7 @@ function applyControlsFor(state) {
     }
 }
 
-/**
- * Updates the token count display in the UI.
- */
+/** Update token counters/summary in header. */
 function updateTokenCount(tokens) {
     if (!tokens) return;
     $("#tokenCount").text(`(${tokens.length})`);
@@ -133,10 +131,7 @@ function updateTokenCount(tokens) {
     if ($sum.length) $sum.text(`Total: ${uniqueKeys.size} pairs`);
 }
 
-/**
- * Toggles the dark mode icon.
- * @param {boolean} isDark - Whether dark mode is active.
- */
+/** Update dark-mode icon based on current theme. */
 function updateDarkIcon(isDark) {
     const icon = document.querySelector('#darkModeToggle');
     if (icon) {
@@ -155,9 +150,7 @@ function updateDarkIcon(isDark) {
  */
 // Legacy filter generator removed. Filtering UI is handled by new filter card in main.js.
 
-/**
- * Renders the signal display area for each DEX.
- */
+/** Render signal card containers per configured DEX. */
 function RenderCardSignal() {
   const dexList = Object.keys(CONFIG_DEXS || {});
   const sinyalContainer = document.getElementById('sinyal-container');
@@ -269,10 +262,7 @@ window.updateSignalTheme = function() {
     } catch(_) {}
 };
 
-/**
- * Opens and populates the 'Edit Koin' modal.
- * @param {string} id - The ID of the token to edit.
- */
+/** Open and populate the 'Edit Koin' modal by token id. */
 function openEditModalById(id) {
     const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
     const tokens = (m.type === 'single') ? getFromLocalStorage(`TOKEN_${String(m.chain).toUpperCase()}`, [])
@@ -326,11 +316,7 @@ function openEditModalById(id) {
     }
 }
 
-/**
- * Applies themed colors to the Edit Koin modal.
- * - For per-chain: use CONFIG_CHAINS[chain].WARNA
- * - For multi: use default green accent
- */
+/** Apply themed colors to Edit Koin modal based on active chain. */
 function applyEditModalTheme(chainKey) {
     const accent = (chainKey && window.CONFIG_CHAINS && window.CONFIG_CHAINS[chainKey] && window.CONFIG_CHAINS[chainKey].WARNA)
         ? window.CONFIG_CHAINS[chainKey].WARNA
@@ -352,11 +338,7 @@ function applyEditModalTheme(chainKey) {
     $modal.find('.uk-text-bold').not('#cex-checkbox-koin *').css('color', accent);
 }
 
-/**
- * Populates a <select> element with chain options.
- * @param {jQuery} $select - The jQuery object for the select element.
- * @param {string} selectedKey - The key of the chain to be selected by default.
- */
+/** Populate a <select> element with chain options from CONFIG_CHAINS. */
 function populateChainSelect($select, selectedKey) {
   const cfg = window.CONFIG_CHAINS || {};
   const keys = Object.keys(cfg);
@@ -378,27 +360,18 @@ function populateChainSelect($select, selectedKey) {
   $select.val(lowerKeys.includes(want) ? want : lowerKeys[0]);
 }
 
-/**
- * Sets the status radio buttons in the edit modal.
- * @param {boolean} isOn - Whether the status is 'ON'.
- */
+/** Set ON/OFF radio status in edit modal. */
 function setStatusRadios(isOn) {
     $('#mgrStatusOn').prop('checked', !!isOn);
     $('#mgrStatusOff').prop('checked', !isOn);
 }
 
-/**
- * Reads the value of the status radio buttons.
- * @returns {boolean} True if 'ON' is selected, false otherwise.
- */
+/** Read ON/OFF radio status in edit modal. */
 function readStatusRadio() {
     return ($('input[name="mgrStatus"]:checked').val() === 'on');
 }
 
-/**
- * Builds CEX selection checkboxes for the edit modal.
- * @param {object} token - The token data object.
- */
+/** Build CEX selection checkboxes for edit modal. */
 function buildCexCheckboxForKoin(token) {
     const container = $('#cex-checkbox-koin');
     container.empty();
@@ -412,10 +385,7 @@ function buildCexCheckboxForKoin(token) {
     });
 }
 
-/**
- * Builds DEX selection checkboxes and capital inputs for the edit modal.
- * @param {object} token - The token data object.
- */
+/** Build DEX selection checkboxes and capital inputs for edit modal. */
 function buildDexCheckboxForKoin(token = {}) {
     const container = $('#dex-checkbox-koin');
     container.empty();
@@ -450,16 +420,12 @@ function buildDexCheckboxForKoin(token = {}) {
     });
 }
 
-/**
- * Disables all form inputs.
- */
+/** Disable all form inputs globally. */
 function form_off() {
     $('input, select, textarea, button').prop('disabled', true); 
 }
 
-/**
- * Enables all form inputs.
- */
+/** Enable primary inputs (except textareas) globally. */
 function form_on() {
     $('input, select, button').prop('disabled', false);
 }

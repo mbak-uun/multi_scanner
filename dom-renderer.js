@@ -1,3 +1,7 @@
+/**
+ * Render monitoring table rows for the given flat token list.
+ * Also refreshes DEX signal cards when rendering main table.
+ */
 function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
     if (tableBodyId === 'dataTableBody') {
         RenderCardSignal();
@@ -239,20 +243,19 @@ function renderTokenManagementList() {
 
     const currentQ = ($('#mgrSearchInput').length ? ($('#mgrSearchInput').val() || '') : ($('#searchInput').length ? ($('#searchInput').val() || '') : ''));
     const safeQ = String(currentQ || '').replace(/"/g, '&quot;');
-    const controls = `
-        <input id="mgrSearchInput" class="uk-input uk-form-small" type="text" placeholder="Cari koin..." style="width:160px;" value="${safeQ}"> 
-        <button id="btnNewToken" class="uk-button uk-button-default uk-button-small" title="Tambah Data Koin"><span uk-icon="plus-circle"></span> ADD COIN</button>
-        <button id="sync-tokens-btn" class="uk-button uk-button-small uk-button-primary" title="Sinkronisasi Data Koin">
-          <span uk-icon="database"></span> SYNC
-        </button>
-        <button id="btnExportTokens" data-feature="export" class="uk-button uk-button-small uk-button-secondary" title="Export CSV">
-          <span uk-icon="download"></span> Export
-        </button>
-        <button id="btnImportTokens" data-feature="import" class="uk-button uk-button-small uk-button-danger" title="Import CSV">
-         <span uk-icon="upload"></span> Import
-        </button>
-        <input type="file" id="uploadJSON" accept=".csv,text/csv" style="display:none;" onchange="uploadTokenScannerCSV(event)">
-    `;
+    const controls = (() => {
+        const base = [
+          `<input id="mgrSearchInput" class="uk-input uk-form-small" type="text" placeholder="Cari koin..." style="width:160px;" value="${safeQ}">`,
+          `<button id=\"btnNewToken\" class=\"uk-button uk-button-default uk-button-small\" title=\"Tambah Data Koin\"><span uk-icon=\"plus-circle\"></span> ADD COIN</button>`,
+          `<button id=\"btnExportTokens\" data-feature=\"export\" class=\"uk-button uk-button-small uk-button-secondary\" title=\"Export CSV\"><span uk-icon=\"download\"></span> Export</button>`,
+          `<button id=\"btnImportTokens\" data-feature=\"import\" class=\"uk-button uk-button-small uk-button-danger\" title=\"Import CSV\"><span uk-icon=\"upload\"></span> Import</button>`,
+          `<input type=\"file\" id=\"uploadJSON\" accept=\".csv,text/csv\" style=\"display:none;\" onchange=\"uploadTokenScannerCSV(event)\">`
+        ];
+        if (m.type === 'single') {
+          base.splice(2, 0, `<button id=\"sync-tokens-btn\" class=\"uk-button uk-button-small uk-button-primary\" title=\"Sinkronisasi Data Koin\"><span uk-icon=\"database\"></span> SYNC</button>`);
+        }
+        return base.join('\n');
+    })();
 
     // Render header only once; on subsequent calls, only update stats summary to avoid losing focus on input
     const $hdr = $('#token-management-stats');
@@ -291,7 +294,30 @@ function renderTokenManagementList() {
         const cexHtml = (r.selectedCexs || []).map(cx => {
             const name = String(cx).toUpperCase();
             const col = (CONFIG_CEX?.[name]?.WARNA) || '#000';
-            return `<span class="cex-chip" style="color:${col}">${name}</span>`;
+            const d = (r.dataCexs || {})[name] || {};
+            const dpTok = (d.depositToken === true) ? true : (d.depositToken === false ? false : undefined);
+            const dpPr  = (d.depositPair  === true) ? true : (d.depositPair  === false ? false : undefined);
+            const wdTok = (d.withdrawToken === true) ? true : (d.withdrawToken === false ? false : undefined);
+            const wdPr  = (d.withdrawPair  === true) ? true : (d.withdrawPair  === false ? false : undefined);
+
+            function aggFlag(a, b){
+                if (a === true || b === true) return true;
+                if (a === false || b === false) return false;
+                return undefined;
+            }
+            const dp = aggFlag(dpTok, dpPr);
+            const wd = aggFlag(wdTok, wdPr);
+
+            function renderIndicator(flag, onText, offText, unkText, title){
+                if (flag === true)  return `<span class=\"uk-text-success\" title=\"${title}\">${onText}</span>`;
+                if (flag === false) return `<span class=\"uk-text-danger\" title=\"${title}\">${offText}</span>`;
+                return `<span style=\"color:#000\" title=\"${title}\">${unkText}</span>`;
+            }
+            const title = `Deposit(Token:${dpTok===true?'✔':dpTok===false?'✖':'?'} / Pair:${dpPr===true?'✔':dpPr===false?'✖':'?'}) | Withdraw(Token:${wdTok===true?'✔':wdTok===false?'✖':'?'} / Pair:${wdPr===true?'✔':wdPr===false?'✖':'?'})`;
+            const depLabel = renderIndicator(dp, 'DP', 'DX', 'DP?', title);
+            const wdrLabel = renderIndicator(wd, 'WD', 'WX', 'WD?', title);
+            const sup = `<span style=\"font-size:12px; margin-left:4px; margin-right:4px;\">${depLabel}&nbsp;${wdrLabel}</span>`;
+            return ` <span class=\"cex-chip\" style=\"font-weight:bolder;color:${col}\">${name} [${sup}]</span>`;
         }).join(' ');
 
         const chainName = (CONFIG_CHAINS?.[String(r.chain).toLowerCase()]?.Nama_Chain) || r.chain;
@@ -396,6 +422,9 @@ function renderTokenManagementList() {
     }
 }
 
+/**
+ * Update left/right orderbook columns with parsed CEX volumes and prices.
+ */
 function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
     const cexName = cex.toUpperCase();
     const TokenPair = finalResult.token + "_" + finalResult.pair;
@@ -436,6 +465,9 @@ function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
     );
 }
 
+/**
+ * Render computed fees/PNL and swap link into a DEX cell; drive signal panel and Telegram.
+ */
 function DisplayPNL(data) {
     const {
         profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype,
@@ -451,6 +483,10 @@ function DisplayPNL(data) {
     const urlsCEXToken = GeturlExchanger(cex.toUpperCase(), Name_in, Name_out);
     const buyLink = urlsCEXToken.tradeToken;
     const sellLink = urlsCEXToken.tradePair;
+    // Resolve specific DP/WD URLs for token (and pair for completeness)
+    const wdTokenUrl = urlsCEXToken.withdrawTokenUrl || urlsCEXToken.withdrawUrl;
+    const dpTokenUrl = urlsCEXToken.depositTokenUrl  || urlsCEXToken.depositUrl;
+    const dpPairUrl  = urlsCEXToken.depositPairUrl   || urlsCEXToken.depositUrl;
 
     // === Harga BUY/SELL (pakai class uikit) ===
     let buyHtml, sellHtml;
@@ -517,19 +553,22 @@ function DisplayPNL(data) {
             }
         } catch(_) {}
 
-        // Build WD/DP label yang sesuai status wallet:
-        // - Jika false: WD->WX (merah), DP->DX (merah)
-        // - Jika true: tautan normal ke halaman WD/DP
+        // Build WD/DP label sesuai arah dan entitas:
+        // - WD selalu merujuk ke token (withdraw token dari CEX)
+        // - DP pada PairtoToken harus merujuk ke token (deposit token), bukan pair
         const wdLabel = (typeof linkifyStatus === 'function')
-            ? linkifyStatus(withdrawFlag, 'WD', urlsCEXToken.withdrawUrl, 'green')
-            : createLink(urlsCEXToken.withdrawUrl, 'WD');
-        const dpLabel = (typeof linkifyStatus === 'function')
-            ? linkifyStatus(depositFlag, 'DP', urlsCEXToken.depositUrl, 'green')
-            : createLink(urlsCEXToken.depositUrl, 'DP');
+            ? linkifyStatus(withdrawFlag, 'WD', wdTokenUrl, 'green')
+            : createLink(wdTokenUrl, 'WD');
+        const dpLabelToken = (typeof linkifyStatus === 'function')
+            ? linkifyStatus(depositFlag, 'DP', dpTokenUrl, 'green')
+            : createLink(dpTokenUrl, 'DP');
+        const dpLabelPair = (typeof linkifyStatus === 'function')
+            ? linkifyStatus(!!depositFlag, 'DP', dpPairUrl, 'green')
+            : createLink(dpPairUrl, 'DP');
 
         let htmlFee = (trx === "TokentoPair")
             ? `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${wdLabel}<br/>`
-            : `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${dpLabel}<br/>`;
+            : `<span class="uk-text-danger">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${dpLabelToken}<br/>`;
 
         resultHtml =
             `${htmlFee}
@@ -612,6 +651,7 @@ function DisplayPNL(data) {
         <span class="${resultWrapClass}">${resultHtml}</span>`;
 }
 
+/** Append a compact item to the DEX signal panel and play audio. */
 function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix) {
   const chainData = getChainData(nameChain);
   const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
@@ -645,6 +685,9 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   audio.play();
 }
  
+/**
+ * Compute rates, value, and PNL for a DEX route result; return data for DisplayPNL.
+ */
 function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype,nameChain,codeChain, trx, vol,DataDEX) {
     const NameX = Name_in + "_" + Name_out;
     const FeeWD = parseFloat(feeWD);
