@@ -42,6 +42,19 @@ function setAppState(patch) {
     return next;
 }
 
+// Floating scroll-to-top button for monitoring table
+document.addEventListener('DOMContentLoaded', function(){
+    try {
+        const btn = document.getElementById('btn-scroll-top');
+        if (!btn) return;
+        btn.addEventListener('click', function(){
+            const container = document.getElementById('monitoring-scroll');
+            if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+            else window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    } catch(_) {}
+});
+
 // Storage helpers moved to utils.js for modular use across app.
 
 /**
@@ -1520,6 +1533,8 @@ $(document).ready(function() {
     updateDarkIcon(isDark);
 
     // --- Defer heavy initialization ---
+    // Apply themed background as early as possible so per-chain color appears before overlay hides
+    try { applyThemeForMode(); } catch(_) {}
     setTimeout(deferredInit, 0);
 
     // Initial header label + sync icon visibility based on URL mode

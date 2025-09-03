@@ -144,6 +144,20 @@ a:hover, .uk-link:hover {
     flex: 0 0 auto;
 }
 
+/* Page loading overlay (freeze screen until fully loaded) */
+#pageLoadingOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.92);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body.dark-mode #pageLoadingOverlay {
+  background: rgba(0,0,0,0.85);
+}
+
 /* Onboarding callouts */
 .cta-settings {
     background: #e53935 !important; /* red */
@@ -538,3 +552,51 @@ body.dark-mode {
   .signal-card__content { font-size: 12px; }
   .signal-card__header { padding: 6px 8px !important; }
 }
+/* Override: NEVER hide ORDERBOOK columns on small screens; allow scrolling instead */
+@media (max-width: 960px) {
+  #main-table thead th:nth-child(1),
+  #main-table tbody td:nth-child(1),
+  #main-table thead th:nth-child(11),
+  #main-table tbody td:nth-child(11),
+  #single-chain-table thead th:nth-child(1),
+  #single-chain-table tbody td:nth-child(1),
+  #single-chain-table thead th:nth-child(11),
+  #single-chain-table tbody td:nth-child(11) {
+    display: table-cell !important;
+  }
+}
+/* Keep monitoring tables readable on small screens by forcing horizontal scroll */
+#main-table,
+#single-chain-table {
+  min-width: 1800px; /* prevent auto-shrink; adjust if needed */
+  table-layout: auto;
+}
+
+#main-table th, #main-table td,
+#single-chain-table th, #single-chain-table td {
+  white-space: nowrap; /* keep numbers intact */
+}
+/* Monitoring table scroll container: allow both axes scroll */
+#monitoring-scroll {
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+
+/* Floating scroll-to-top button */
+#btn-scroll-top {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background-color: #0a7e20; /* dark green */
+  color: #fff;
+  border: 1px solid #065b16;
+  border-radius: 16px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2000;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+#btn-scroll-top:hover { background-color: #096d1c; }

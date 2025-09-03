@@ -18,6 +18,25 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="pageLoadingOverlay">
+  <div class="uk-position-center uk-text-center">
+    <div uk-spinner="ratio: 3"></div>
+    <p class="uk-margin-small-top">Loading... Please wait</p>
+  </div>
+  <script>
+    // Prevent scroll during page load
+    try { document.documentElement.style.overflow = 'hidden'; } catch(_){}
+    document.addEventListener('DOMContentLoaded', function(){
+      try { document.getElementById('pageLoadingOverlay').style.display = 'none'; } catch(_){}
+      try { document.documentElement.style.overflow = ''; } catch(_){}
+    });
+    // Fallback auto-hide in case load event delayed excessively
+    setTimeout(function(){
+      try { document.getElementById('pageLoadingOverlay').style.display = 'none'; } catch(_){}
+      try { document.documentElement.style.overflow = ''; } catch(_){}
+    }, 20000);
+  </script>
+</div>
 <div id="loadingOverlay" style="display: none;">
     <div class="uk-position-center uk-text-center">
         <div uk-spinner="ratio: 3"></div>
@@ -96,10 +115,10 @@
                 <!-- KOLOM KIRI: semua kontrol kecuali Search -->
                 <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
                 <span class=" uk-text-bolder">SCANNER:</span>
-                <label class="uk-margin-small-left">
+                <!-- <label class="uk-margin-small-left">
                     <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
                     <span class="uk-text-primary">Auto Run</span>
-                </label>
+                </label> -->
                 <label class="uk-margin-small-left">
                     <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
                     <span class="uk-text-danger">Vol Check</span>
@@ -138,7 +157,7 @@
                 <!-- KOLOM KANAN: Search, rata kanan ≥ @m -->
                 <div class="uk-width-1-1 uk-width-auto@m">
                     <div class="uk-flex uk-flex-right@m uk-flex-middle uk-flex-wrap">
-                        <span id="autoRunCountdown" class="uk-text-meta uk-margin-small-right" style="min-width:64px; display:inline-block;"></span>
+                        <!-- <span id="autoRunCountdown" class="uk-text-meta uk-margin-small-right" style="min-width:64px; display:inline-block;"></span> -->
 
                         <label class="uk-margin-small-left uk-flex uk-flex-middle">
                         <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
@@ -175,25 +194,21 @@
             <!-- Sinyal DEX akan dimuat di sini -->
     </div>
 
-    <div class="uk-overflow-auto uk-margin-small-top ">
-        <table id="main-table" class="uk-table uk-table-hover uk-table-small uk-table-striped" style="border-collapse: collapse; width: 100%;">
+    <div class="uk-overflow-auto uk-margin-small-top" id="monitoring-scroll" style="max-height: calc(100vh - 220px); overflow: auto;">
+        <table id="main-table" class="uk-table uk-table-hover uk-table-small uk-table-striped" >
             <thead style="background: #5c9514;">
-                <tr style="border-bottom: 1px solid black;">
-                    <th rowspan="2" class="uk-text-center uk-text-bolder" style=" color: white !important;">
-                        ORDERBOOK
-                    </th>
-                    <th colspan="4" class="uk-text-center uk-text-bolder" style=" color: white !important;">
-                        CEX → DEX
-                    </th>
-                    <th rowspan="2" class="uk-text-center uk-text-bolder" style="color: white !important;">
-                        DETAIL TOKEN
-                    </th>
-                    <th colspan="4" class="uk-text-center uk-text-bolder" style="color: white !important;">
-                        DEX → CEX
-                    </th>
-                    <th rowspan="2" class="uk-text-center uk-text-bolder" style="color: white !important;">
-                        ORDERBOOK
-                    </th>
+                <tr style="border-bottom: 1px solid black;">                    
+                    <th class="uk-text-center uk-text-bolder" style="color: white;">ORDERBOOK</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 1</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 2</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 3</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 4</th>
+                    <th class="uk-text-center uk-text-bolder" style="color: white;">DETAIL TOKEN</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 1</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 2</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 3</th>
+                    <th class="uk-text-center uk-text-small" style="color:white; ">DEX 4</th>
+                    <th class="uk-text-center uk-text-bolder" style="color: white;">ORDERBOOK</th>
                 </tr>
             </thead>
             <tbody id="dataTableBody">
@@ -201,6 +216,11 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Floating Scroll-To-Top button (always visible) -->
+    <button id="btn-scroll-top" type="button" aria-label="Scroll to top" title="Scroll to top">
+        ⬆
+    </button>
     
       <!-- SECTION -->
     <section id="form-setting-app" class="uk-card uk-card-default uk-card-body uk-margin-small" style="display:none;">

@@ -288,7 +288,7 @@ function renderTokenManagementList() {
     // Virtualize manager rows for large datasets
     const container = document.getElementById('manager-table');
     const ROW_ESTIMATE = 64; // px per row (approx, adjusted for larger text)
-    const VIRTUAL_THRESHOLD = 300; // start virtualization past this size
+    const VIRTUAL_THRESHOLD = 150; // start virtualization earlier for smoother scroll on large lists
 
     function renderMgrRow(r){
         const cexHtml = (r.selectedCexs || []).map(cx => {
@@ -453,7 +453,7 @@ function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
     const rightSelector = '#' + idPrefix + 'RIGHT_' + cexName + '_' + TokenPair + '_' + finalResult.chainName.toUpperCase();
 
     $(leftSelector).html(
-        volumesBuyToken.map(data => renderVolume(data, 'uk-text-success')).join('') +
+        volumesSellToken.map(data => renderVolume(data, 'uk-text-success')).join('') +
         `<span class='uk-text-primary uk-text-bolder'>${finalResult.token} -> ${finalResult.pair}</span><br/>` +
         volumesSellPair.map(data => renderVolume(data, 'uk-text-danger')).join('')
     );
@@ -461,7 +461,7 @@ function updateTableVolCEX(finalResult, cex, tableBodyId = 'dataTableBody') {
     $(rightSelector).html(
         volumesBuyPair.map(data => renderVolume(data, 'uk-text-success')).join('') +
         `<span class='uk-text-primary uk-text-bolder'>${finalResult.pair} -> ${finalResult.token}</span><br/>` +
-        volumesSellToken.map(data => renderVolume(data, 'uk-text-danger')).join('')
+        volumesBuyToken.map(data => renderVolume(data, 'uk-text-danger')).join('')
     );
 }
 
@@ -496,15 +496,17 @@ function DisplayPNL(data) {
                         ${formatPrice(priceBuyToken_CEX)}
                       </label>
                     </a>`;
+        // SELL for Token->Pair should show lowest ask of PAIR
         sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer">
                       <label class="uk-text-danger" title="${cex} SELL: ${Name_out}->USDT">
-                        ${formatPrice(priceSellPair_CEX)}
+                        ${formatPrice(priceBuyPair_CEX)}
                       </label>
                     </a>`;
     } else {
+        // PairtoToken: BUY should show highest bid of TOKEN
         buyHtml  = `<a href="${buyLink}" target="_blank" rel="noopener noreferrer">
-                      <label class="uk-text-success" title="${cex} BUY: USDT->${Name_out}">
-                        ${formatPrice(priceBuyPair_CEX)}
+                      <label class="uk-text-success" title="${cex} BUY: USDT->${Name_in}">
+                        ${formatPrice(priceSellToken_CEX)}
                       </label>
                     </a>`;
         sellHtml = `<a href="${sellLink}" target="_blank" rel="noopener noreferrer">
@@ -590,8 +592,9 @@ function DisplayPNL(data) {
                     contractAddress: sc_input,
                     pairContractAddress: sc_output
                 };
-                const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceBuyPair_CEX;
-                const priceSELL = (trx === 'TokentoPair') ? priceSellPair_CEX : priceSellToken_CEX;
+                // Telegram mapping per requested orderbook logic
+                const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceSellToken_CEX; // PairtoToken BUY uses best bid of token
+                const priceSELL = (trx === 'TokentoPair') ? priceBuyPair_CEX  : priceSellToken_CEX; // TokentoPair SELL uses lowest ask of pair
                 const nickname = (typeof getFromLocalStorage === 'function') ? (getFromLocalStorage('SETTING_SCANNER', {})?.nickname || '') : '';
                 MultisendMessage(
                     cex, dextype, tokenData, Modal, pnl, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction
@@ -625,8 +628,8 @@ function DisplayPNL(data) {
                         contractAddress: sc_input,
                         pairContractAddress: sc_output
                     };
-                    const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceBuyPair_CEX;
-                    const priceSELL = (trx === 'TokentoPair') ? priceSellPair_CEX : priceSellToken_CEX;
+                    const priceBUY  = (trx === 'TokentoPair') ? priceBuyToken_CEX  : priceSellToken_CEX;
+                    const priceSELL = (trx === 'TokentoPair') ? priceBuyPair_CEX  : priceSellToken_CEX;
                     const nickname = (typeof getFromLocalStorage === 'function') ? (getFromLocalStorage('SETTING_SCANNER', {})?.nickname || '') : '';
                     MultisendMessage(
                         cex, dextype, tokenData, Modal, pnl, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction

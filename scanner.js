@@ -280,9 +280,22 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         finalDexRes.dexTitle || dex, token.chain, CONFIG_CHAINS[token.chain.toLowerCase()].Kode_Chain,
                                         direction, 0, finalDexRes
                                     );
-                                    // Console log summary for this check
-            // Debug logs removed for production cleanliness
-            try { /* no-op */ } catch(_) {}
+                                    // Console log summary for this successful check
+                                    try {
+                                        //menampilkan log simulasi harga
+                                        const pairLine = `${String(isKiri ? token.symbol_in : token.symbol_out).toUpperCase()}->${String(isKiri ? token.symbol_out : token.symbol_in).toUpperCase()} on ${String(token.chain).toUpperCase()}`;
+                                        const via = finalDexRes?.dexTitle || dex;
+                                        const routeLine = `${String(token.cex).toUpperCase()}->${String(via).toUpperCase()} [OK]`;
+                                        const modalVal = isKiri ? modalKiri : modalKanan;
+                                        const modalLine = `modal ${Number(modalVal||0)}$`;
+                                        // Mapping to match table logic
+                                        const buyPrice = isKiri ? DataCEX.priceBuyToken : DataCEX.priceSellToken; // PairtoToken BUY = token best bid
+                                        const sellPrice = isKiri ? DataCEX.priceBuyPair : DataCEX.priceSellToken; // TokentoPair SELL = pair lowest ask
+                                        const buyLine = `buy : ${Number(buyPrice||0)}$`;
+                                        const sellLine = `sell : ${Number(sellPrice||0)}$`;
+                                        const pnlLine = `PNL : ${Number(update.profitLoss||0).toFixed(2)}$`;
+                                        console.log(`${pairLine}\n${routeLine}\n${modalLine}\n${buyLine}\n${sellLine}\n${pnlLine}\n----------------------`);
+                                    } catch(_) {}
                                     uiUpdateQueue.push(update);
                                 };
 
@@ -315,11 +328,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                                 const routeLine = `${String(token.cex).toUpperCase()}->${String(dex).toUpperCase()} [ERROR]`;
                                                 const modalVal = isKiri ? modalKiri : modalKanan;
                                                 const modalLine = `modal ${Number(modalVal||0)}$`;
-                                                const buyPrice = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
-                                                const sellPrice = isKiri ? DataCEX.priceSellPair : DataCEX.priceSellToken;
+                                                // Align console info with requested orderbook logic
+                                                const buyPrice = isKiri ? DataCEX.priceBuyToken : DataCEX.priceSellToken;
+                                                const sellPrice = isKiri ? DataCEX.priceBuyPair : DataCEX.priceSellToken;
                                                 const buyLine = `buy : ${Number(buyPrice||0)}$`;
                                                 const sellLine = `sell : ${Number(sellPrice||0)}$`;
-                                                const pnlLine = `PNL : N/A`;
+                                                const pnlLine = `PNL : N/A (DEX error)`;
                                                 console.log(`${pairLine}\n${routeLine}\n${modalLine}\n${buyLine}\n${sellLine}\n${pnlLine}\n----------------------`);
                                             } catch(_) {}
                                         });
@@ -330,11 +344,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                             const routeLine = `${String(token.cex).toUpperCase()}->${String(dex).toUpperCase()} [ERROR]`;
                                             const modalVal = isKiri ? modalKiri : modalKanan;
                                             const modalLine = `modal ${Number(modalVal||0)}$`;
-                                            const buyPrice = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
-                                            const sellPrice = isKiri ? DataCEX.priceSellPair : DataCEX.priceSellToken;
+                                            // Align console info with requested orderbook logic
+                                            const buyPrice = isKiri ? DataCEX.priceBuyToken : DataCEX.priceSellToken;
+                                            const sellPrice = isKiri ? DataCEX.priceBuyPair : DataCEX.priceSellToken;
                                             const buyLine = `buy : ${Number(buyPrice||0)}$`;
                                             const sellLine = `sell : ${Number(sellPrice||0)}$`;
-                                            const pnlLine = `PNL : N/A`;
+                                            const pnlLine = `PNL : N/A (DEX error)`;
                                             console.log(`${pairLine}\n${routeLine}\n${modalLine}\n${buyLine}\n${sellLine}\n${pnlLine}\n----------------------`);
                                         } catch(_) {}
                                     }
@@ -378,7 +393,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
         // Inform user that app is checking GAS/GWEI per active chains
         try {
-            $('#progress').text('CHECKING GAS / GWEI CHAINS...');
+           
             $('#progress-bar').css('width', '5%');
             $('#progress-text').text('5%');
         } catch(_) {}

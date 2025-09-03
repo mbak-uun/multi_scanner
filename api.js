@@ -64,6 +64,23 @@ async function feeGasGwei() {
     if (!chains.length) return; // no active chains -> skip fetching
     if (!chains.length) return;
 
+    // Update progress label with chain names for better UX
+    try {
+        const names = chains
+            .map(n => {
+                try {
+                    const cd = getChainData(n);
+                    return (cd?.SHORT_NAME || cd?.Nama_Chain || n).toString().toUpperCase();
+                } catch(_) { return String(n).toUpperCase(); }
+            })
+            .filter(Boolean);
+        if (names.length) {
+            $('#progress').text(`CHECKING GAS / GWEI CHAINS: ${names.join(', ')}`);
+        } else {
+            $('#progress').text('CHECKING GAS / GWEI CHAINS...');
+        }
+    } catch(_) {}
+
     const chainInfos = chains.map(name => {
         const data = getChainData(name);
         return data ? { ...data, rpc: data.RPC, symbol: data.BaseFEEDEX.replace("USDT", ""), gasLimit: data.GASLIMIT || 21000 } : null;
@@ -88,6 +105,7 @@ async function feeGasGwei() {
                 return { chain: chain.Nama_Chain, key: chain.key || chain.symbol, symbol: chain.symbol, tokenPrice: price, gwei, gasUSD };
             } catch { return null; }
         }));
+        // Keep previous label; readiness is updated by caller
         saveToLocalStorage("ALL_GAS_FEES", gasResults.filter(Boolean));
     } catch (err) { console.error("Gagal ambil harga token gas:", err); }
 }

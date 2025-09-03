@@ -70,8 +70,6 @@ const CONFIG_CEX = {
     },
     BYBIT: {
         WARNA: "#f29900",
-        ApiKey: "HnsUDsGJz3wBUWB0yo",
-        ApiSecret: "7oxpgXRQGs7RvkGGoz8mM10drIKPXCVgUW4S",
         LINKS: {
             tradeToken: ({ token }) => `https://www.bybit.com/trade/spot/${String(token||'').toUpperCase()}/USDT`,
             tradePair:  ({ pair })  => `https://www.bybit.com/trade/spot/${String(pair||'').toUpperCase()}/USDT`,

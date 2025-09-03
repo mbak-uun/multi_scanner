@@ -17,23 +17,51 @@
   // ====== Fungsi Universal untuk Orderbook CEX ======
   /** Normalize standard CEX orderbook payload into top N levels. */
   function processOrderBook(data, limit = 3) {
+    if (!data?.bids || !data?.asks) {
+        console.error("Invalid orderbook data:", data);
+        return { priceBuy: [], priceSell: [] };
+    }
+
+    // bids: sort desc (harga tertinggi dulu)
+    const bids = [...data.bids].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+    // asks: sort asc (harga terendah dulu)
+    const asks = [...data.asks].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+
+    // harga beli = ambil harga tertinggi (dari bids)
+    const priceBuy = bids.slice(0, limit).map(([price, volume]) => ({
+        price: parseFloat(price),                // harga beli
+        volume: parseFloat(volume) * parseFloat(price) // nilai dalam USDT
+    }));
+
+    // harga jual = ambil harga terendah (dari asks)
+    const priceSell = asks.slice(0, limit).map(([price, volume]) => ({
+        price: parseFloat(price),                // harga jual
+        volume: parseFloat(volume) * parseFloat(price) // nilai dalam USDT
+    }));
+
+    return { priceBuy, priceSell };
+}
+
+  function processOrderBookLAMA(data, limit = 3) {
       if (!data?.bids || !data?.asks) {
           console.error("Invalid orderbook data:", data);
           return { priceBuy: [], priceSell: [] };
       }
 
+      // bids: sort desc, best bid at index 0
       const bids = [...data.bids].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+      // asks: sort asc, best ask at index 0
       const asks = [...data.asks].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
 
       const priceBuy = bids.slice(0, limit).map(([price, volume]) => ({
           price: parseFloat(price),
           volume: parseFloat(volume) * parseFloat(price)
-      })).reverse();
+      }));
 
       const priceSell = asks.slice(0, limit).map(([price, volume]) => ({
           price: parseFloat(price),
           volume: parseFloat(volume) * parseFloat(price)
-      })).reverse();
+      }));
 
       return { priceBuy, priceSell };
   }
@@ -46,7 +74,11 @@
           return { priceBuy: [], priceSell: [] };
       }
 
-      const priceBuy = data.buy.slice(0, limit).map(([price, volume]) => {
+      // Ensure same semantics: buy = bids desc (best bid first), sell = asks asc (best ask first)
+      const buySorted = [...data.buy].sort((a,b) => parseFloat(b[0]) - parseFloat(a[0]));
+      const sellSorted = [...data.sell].sort((a,b) => parseFloat(a[0]) - parseFloat(b[0]));
+
+      const priceBuy = buySorted.slice(0, limit).map(([price, volume]) => {
           const priceFloat = parseFloat(price);
           const volumeFloat = parseFloat(volume);
           return {
@@ -55,7 +87,7 @@
           };
       });
 
-      const priceSell = data.sell.slice(0, limit).map(([price, volume]) => {
+      const priceSell = sellSorted.slice(0, limit).map(([price, volume]) => {
           const priceFloat = parseFloat(price);
           const volumeFloat = parseFloat(volume);
           return {
@@ -209,9 +241,9 @@
                               success: function (data) {
                                   try {
                                       const processedData = config.processData(data);
-                                      const isIndodax = cex.toLowerCase() === "indodax";
-                                      const priceBuy = isIndodax ? (processedData?.priceSell?.[2]?.price || 0) : (processedData?.priceSell?.[2]?.price || 0);
-                                      const priceSell = isIndodax ? (processedData?.priceBuy?.[2]?.price || 0) : (processedData?.priceBuy?.[2]?.price || 0);
+                                      // Select best prices: BUY uses best ask (lowest), SELL uses best bid (highest)
+                                      const priceBuy = processedData?.priceSell?.[0]?.price || 0;
+                                      const priceSell = processedData?.priceBuy?.[0]?.price || 0;
                                       if (priceBuy <= 0 || priceSell <= 0) {
                                           return rejectAjax(`Harga tidak valid untuk ${tokenName} di ${cex}.`);
                                       }
@@ -274,6 +306,7 @@
               };
 
               updateTableVolCEX(finalResult, cex, tableBodyId);
+              //console.log(finalResult);
               resolve(finalResult);
           }).catch(error => { reject(error); });
       });
@@ -285,7 +318,10 @@
   /** Fetch DP/WD statuses and fees for a given CEX (per token/chain). */
   async function fetchWalletStatus(cex) {
       const cfg = CONFIG_CEX?.[cex] || {};
-      const { ApiKey, ApiSecret } = cfg;
+      const secretSrc = (typeof CEX_SECRETS !== 'undefined' && CEX_SECRETS?.[cex]) ? CEX_SECRETS[cex]
+                        : ((typeof window !== 'undefined' && window.CEX_SECRETS && window.CEX_SECRETS[cex]) ? window.CEX_SECRETS[cex] : {});
+      const ApiKey = cfg.ApiKey || secretSrc?.ApiKey;
+      const ApiSecret = cfg.ApiSecret || secretSrc?.ApiSecret;
       const hasKeys = !!(ApiKey && ApiSecret);
       const timestamp = Date.now();
 
