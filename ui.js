@@ -231,6 +231,31 @@ function RenderCardSignal() {
 
   // Terapkan layout grid dinamis sesuai jumlah kartu yang terlihat
   try { if (typeof window.updateSignalGridLayout === 'function') window.updateSignalGridLayout(); } catch(_) {}
+
+  // Tambahkan placeholder info jika belum ada sinyal
+  try {
+    const existing = document.getElementById('no-signal-placeholder');
+    if (!existing) {
+      const info = document.createElement('div');
+      info.id = 'no-signal-placeholder';
+      info.className = 'no-signal-placeholder uk-width-1-1 uk-margin-small-top';
+      info.style.display = 'none';
+      info.innerHTML = `
+        <div class="uk-card uk-card-default uk-card-hover uk-card-small signal-card" style="border-radius:6px; overflow:hidden; border:1px solid ${chainColor};">
+          <div class="uk-card-header uk-padding-small uk-padding-remove-vertical" style="background-color:${chainColor}; color:#fff; border-bottom:1px solid ${chainColor};">
+            <div class="uk-flex uk-flex-middle uk-flex-between">
+              <div class="uk-flex uk-flex-middle" style="gap:8px;">
+                <span class="uk-text-bold" style="color:#fff!important; font-size:14px;">INFORMASI</span>
+              </div>
+            </div>
+          </div>
+          <div class="uk-card-body uk-padding-small uk-padding-remove-vertical" style="padding-left:6px; padding-right:6px;">
+            <div class="uk-text-center uk-text-bold" style="color:#e53935; font-size:13px;">MASIH BELUM ADA INFO SELISIH HARGA</div>
+          </div>
+        </div>`;
+      sinyalContainer.insertBefore(info, sinyalContainer.firstChild);
+    }
+  } catch(_) {}
 }
 
  
@@ -270,8 +295,8 @@ window.updateSignalGridLayout = function() {
   try {
     const container = document.getElementById('sinyal-container');
     if (!container) return;
-    const items = Array.from(container.children || []);
-    const visibleItems = items.filter(el => el && el.style.display !== 'none');
+    const cardItems = Array.from(container.querySelectorAll('div[id^="card-"]'));
+    const visibleItems = cardItems.filter(el => el && el.style.display !== 'none');
     const n = Math.max(visibleItems.length, 1);
 
     // Reset kelas child-width lama
@@ -280,6 +305,12 @@ window.updateSignalGridLayout = function() {
     // Tambah kelas child-width sesuai jumlah terlihat (1..12 aman untuk UIkit)
     const maxCols = Math.min(n, 12);
     container.classList.add(`uk-child-width-1-${maxCols}`);
+
+    // Toggle placeholder info
+    const placeholder = document.getElementById('no-signal-placeholder');
+    if (placeholder) {
+      placeholder.style.display = (visibleItems.length === 0) ? '' : 'none';
+    }
 
     // Update UIkit layout
     if (window.UIkit && typeof UIkit.update === 'function') UIkit.update(container);
@@ -473,7 +504,11 @@ function buildDexCheckboxForKoin(token = {}) {
 
 /** Disable all form inputs globally. */
 function form_off() {
-    $('input, select, textarea, button').prop('disabled', true); 
+    $('input, select, textarea, button').prop('disabled', true);
+    // Whitelist critical controls to remain interactive during scanning
+    try {
+        $('#stopSCAN, #reload, #darkModeToggle, #autoScrollCheckbox').prop('disabled', false);
+    } catch(_) {}
 }
 
 /** Enable primary inputs (except textareas) globally. */

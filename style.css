@@ -281,6 +281,9 @@ body.dark-mode #pageLoadingOverlay {
     border-radius: 8px;
 }
 
+/* Override for signal placeholder wrapper so only inner card is styled */
+#sinyal-container .no-signal-placeholder { border: 0; background: transparent; }
+
 /* Progress Bar */
 #progress-container {
     width: 100%;
@@ -466,7 +469,7 @@ body.dark-mode {
     color: #ffffff !important;
 }
 #startSCAN.uk-button:active:not(.uk-button-disabled):not([disabled]) {
-    background-color: #26833e !important;
+    background-color: #7d8c81 !important;
 }
 #startSCAN.uk-button.uk-button-disabled,
 #startSCAN.uk-button:disabled {

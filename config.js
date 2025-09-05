@@ -139,7 +139,8 @@ const CONFIG_CHAINS = {
         },
         PAIRDEXS: {
            "USDT": { symbolPair: 'USDT', scAddressPair: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', desPair: '6' },
-           "MATIC": { symbolPair: 'MATIC', scAddressPair: '0x0000000000000000000000000000000000001010', desPair: '18' },
+           "USDC": { symbolPair: 'USDC', scAddressPair: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', desPair: '6' },
+           "POL": { symbolPair: 'POL', scAddressPair: '0x0000000000000000000000000000000000001010', desPair: '18' },
            "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
     },
@@ -191,7 +192,6 @@ const CONFIG_CHAINS = {
             "ETH":{ symbolPair: 'ETH', scAddressPair: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', desPair: '18' },
             "USDT":{ symbolPair: 'USDT', scAddressPair: '0xdAC17F958D2ee523a2206206994597C13D831ec7', desPair: '6' },
             "BNT":{ symbolPair: 'BNT', scAddressPair: '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C', desPair: '18' },
-            "USDC":{ symbolPair: 'USDC', scAddressPair: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', desPair: '6' },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         } 
     }, 
@@ -217,6 +217,7 @@ const CONFIG_CHAINS = {
         PAIRDEXS: {
             "BNB": { symbolPair: "BNB", scAddressPair: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", desPair: "18" },
             "USDT": { symbolPair: "USDT", scAddressPair: "0x55d398326f99059fF775485246999027B3197955", desPair: "18" },
+            "ETH": { symbolPair: "ETH", scAddressPair: "0x2170ed0880ac9a755fd29b2688956bd959f933f8", desPair: "18" },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }        
     },
@@ -251,12 +252,12 @@ const CONFIG_DEXS = {
     kyberswap: {
         STRATEGY: 'kyberswap',
         builder: ({ chainName, tokenAddress, pairAddress }) => `https://kyberswap.com/swap/${chainName}/${tokenAddress}-to-${pairAddress}`,
-        allowFallback: true,
+        allowFallback: false,
     },
     '0x': {
         STRATEGY: '0x',
         builder: ({ chainName, tokenAddress, pairAddress, chainCode }) => `https://matcha.xyz/tokens/${chainName}/${tokenAddress.toLowerCase()}?buyChain=${chainCode}&buyAddress=${pairAddress.toLowerCase()}`,
-        allowFallback: true,
+        allowFallback: false,
     },
     odos: {
         STRATEGY: 'odos',
@@ -266,7 +267,7 @@ const CONFIG_DEXS = {
     okx: {
         STRATEGY: 'okx',
         builder: ({ chainCode, tokenAddress, pairAddress }) => `https://www.okx.com/web3/dex-swap?inputChain=${chainCode}&inputCurrency=${tokenAddress}&outputChain=501&outputCurrency=${pairAddress}`,
-        allowFallback: true,
+        allowFallback: false,
     },
     '1inch': {
         STRATEGY: '1inch',
