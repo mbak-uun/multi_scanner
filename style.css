@@ -190,15 +190,8 @@ a:hover, .uk-link:hover {
 
 /* Signal cards: show initial space/message when empty */
 #sinyal-container .signal-card_content {
-  min-height: 20px; /* give cards some initial height */
+  min-height: 20px; /* compact base height */
   padding: 6px 4px; /* gentle inner padding */
-}
-#sinyal-container .signal-card_content:empty::before {
-  content: 'Belum ada sinyal';
-  display: block;
-  color: #03431a;
-  font-style: italic;
-  opacity: 0.85;
 }
 
 /* Header */

@@ -767,6 +767,9 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
 
   $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
 
+  // Pastikan kartu sinyal DEX utama terlihat ketika ada item sinyal
+  try { if (typeof window.showSignalCard === 'function') window.showSignalCard(DEXPLUS.toLowerCase()); } catch(_) {}
+
   const audio = new Audio('audio.mp3');
   audio.play();
 }
