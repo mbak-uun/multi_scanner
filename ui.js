@@ -14,7 +14,7 @@ function applyControlsFor(state) {
     const $export = $('a[onclick="downloadTokenScannerCSV()"], #btnExportTokens');
     const $settingsIcon = $('#SettingConfig');
     const $toolIcons = $('.header-card .icon');
-    const $chainLinks = $('#chain-links-container a, #chain-links-container .chain-link');
+    const $chainLinks = $('#chain-links-container a, #chain-links-container .chain-link'); // legacy (icons removed)
     const $filterControls = $('#filter-card').find('input, .toggle-radio, button, label');
     const $sortToggles = $('.sort-toggle');
 
@@ -65,6 +65,8 @@ function applyControlsFor(state) {
         setClickableEnabled($toolIcons.add($chainLinks), true);
         setClickableEnabled($sortToggles, true);
         toggleFilterControls(true);
+        // Ensure mode/chain selectors are usable
+        try { $('#modeChainSelect').prop('disabled', false).css({ opacity: '', pointerEvents: '' }); } catch(_) {}
         // remove onboarding callouts
         $settingsIcon.removeClass('cta-settings').attr('title','CONFIG SCANNER');
         try { $('#sync-tokens-btn').removeClass('cta-highlight'); } catch(_){ }
@@ -77,7 +79,7 @@ function applyControlsFor(state) {
         $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> terlebih dahulu. Form pengaturan dibuka otomatis.').show();
         // Disable all inputs globally then re-enable only the settings form controls
         try {
-            $('input, select, textarea, button').prop('disabled', true);
+            $('input, select, textarea, button').not('#btn-scroll-top').prop('disabled', true);
             $('#form-setting-app').find('input, select, textarea, button').prop('disabled', false);
         } catch(_) {}
 
@@ -96,6 +98,8 @@ function applyControlsFor(state) {
             $('#SettingConfig, #reload').css({ opacity: '', pointerEvents: '' }).prop('disabled', false);
             // Explicitly disable Manajemen Koin menu
             $('#ManajemenKoin,#multichain_scanner').css({ opacity: '0.5', pointerEvents: 'none' }).prop('disabled', true);
+            // Keep mode selector disabled until settings are provided
+            try { $('#modeChainSelect').prop('disabled', true).css({ opacity: '0.5', pointerEvents: 'none' }); } catch(_) {}
         } catch(_) {}
     } else if (state === 'MISSING_TOKENS') {
         setDisabled($import, false);
@@ -148,7 +152,7 @@ function updateDarkIcon(isDark) {
  * @param {string} style - CSS classes for the label.
  * @param {string} type - 'chain' or 'cex'.
  */
-// Legacy filter generator removed. Filtering UI is handled by new filter card in main.js.
+
 
 /** Render signal card containers per configured DEX. */
 function RenderCardSignal() {
@@ -206,7 +210,7 @@ function RenderCardSignal() {
 
     // BODY lebih ramping (tipis atas-bawah + sempit kiri-kanan)
     const cardBody = document.createElement('div');
-    cardBody.className = 'uk-card-body uk-padding-small uk-padding-remove-vertical';
+    cardBody.className = 'uk-card-body uk-padding-small uk-padding-remove-vertical uk-card-hover';
     cardBody.style.paddingLeft = '6px';
     cardBody.style.paddingRight = '6px';
     cardBody.id = bodyId;
@@ -249,7 +253,7 @@ function RenderCardSignal() {
               </div>
             </div>
           </div>
-          <div class="uk-card-body uk-padding-small uk-padding-remove-vertical" style="padding-left:6px; padding-right:6px;">
+          <div class="uk-card-body uk-padding-small uk-padding-remove-vertical uk-card-hover" style="padding-left:6px; padding-right:6px;">
             <div class="uk-text-center uk-text-bold" style="color:#e53935; font-size:13px;">MASIH BELUM ADA INFO SELISIH HARGA</div>
           </div>
         </div>`;
@@ -274,7 +278,7 @@ window.updateSignalTheme = function() {
         const cards = container.querySelectorAll('.uk-card');
         cards.forEach(card => {
             // Body warna: putih (light), abu-abu gelap (dark)
-            card.style.background = isDark ? '#e8e5e5ff' : '#ffffffff';
+            card.style.background = isDark ? '#424743ff' : '#ffffffff';
             card.style.color = isDark ? '#ffffff' : '#000000';
             card.style.borderColor = chainColor;
             const header = card.querySelector('.uk-card-header');
@@ -341,6 +345,20 @@ window.hideEmptySignalCards = function() {
       }
     });
     window.updateSignalGridLayout && window.updateSignalGridLayout();
+  } catch(_) {}
+};
+
+/**
+ * Clear all rendered signal contents and hide empty cards.
+ * Use this when filters change so previous scan results are removed.
+ */
+window.clearSignalCards = function() {
+  try {
+    const container = document.getElementById('sinyal-container');
+    if (!container) return;
+    const spans = container.querySelectorAll('[id^="sinyal"]');
+    spans.forEach(sp => { try { sp.innerHTML = ''; } catch(_){} });
+    if (typeof window.hideEmptySignalCards === 'function') window.hideEmptySignalCards();
   } catch(_) {}
 };
 
@@ -504,7 +522,7 @@ function buildDexCheckboxForKoin(token = {}) {
 
 /** Disable all form inputs globally. */
 function form_off() {
-    $('input, select, textarea, button').prop('disabled', true);
+    $('input, select, textarea, button').not('#btn-scroll-top').prop('disabled', true);
     // Whitelist critical controls to remain interactive during scanning
     try {
         $('#stopSCAN, #reload, #darkModeToggle, #autoScrollCheckbox').prop('disabled', false);

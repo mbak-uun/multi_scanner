@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MULTICHECKER PLUS</title>
+    <title>MULTISCANNER PLUS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/js/uikit.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.0/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script> 
     
-    <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/256/17014/17014994.png">
+    <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/256/5950/5950391.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -54,7 +54,7 @@
                     <div class="uk-flex uk-flex-middle uk-flex-wrap">
                         <h3 id="judul" class="uk-margin-remove" 
                             style="font-size: 18px; line-height: 1.2; color: #000; font-weight: bold;">
-                            MULTICHECKER <span id="current-chain-label" style="margin-left:3px;">[ALL]</span>
+                            MULTISCANNER <span id="current-chain-label" style="margin-left:3px;">[ALL]</span>
                             <!-- <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" /> -->
                         </h3>
                         &nbsp;&nbsp;
@@ -67,8 +67,10 @@
                 <!-- Kanan: Toolbar icon -->
                 <div class="uk-width-auto@s uk-width-1-1">
                     <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s toolbar-scroll" style="gap: 7px; padding:0px 10px;">                        
-                         <a href="index.html?chain=all" id="multichain_scanner" ><img class="icon" title="SCANNER MUTLTICHAIN" width="24px" src="https://cdn-icons-png.flaticon.com/512/8897/8897593.png" /></a>
-                        <span id="chain-links-container"></span>
+                        <div class="uk-flex uk-flex-middle" style="gap:6px;">
+                          <label for="modeChainSelect" class="uk-text-small uk-text-bold" style="margin:0;">MODE</label>
+                          <select id="modeChainSelect" class="uk-select uk-form-small uk-form-width-small" title="Pilih MULTICHAIN atau chain tertentu"></select>
+                        </div>
                          
                          <a href="#" target="_blank" id="ManajemenKoin" data-feature="manage">
                             <img title="MANAJEMEN KOIN" class="icon"  src="https://cdn-icons-png.flaticon.com/512/998/998712.png" width="24px" />
@@ -114,7 +116,7 @@
                 <!-- KOLOM KIRI: semua kontrol kecuali Search -->
                 <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
                 <span class=" uk-text-bolder">SCANNER:</span>
-                 <!-- <label class="uk-margin-small-left">
+                <!-- <label class="uk-margin-small-left">
                     <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
                     <span class="uk-text-success">Auto Run</span>
                 </label> -->
@@ -156,7 +158,7 @@
                 <!-- KOLOM KANAN: Search, rata kanan ≥ @m -->
                 <div class="uk-width-1-1 uk-width-auto@m">
                     <div class="uk-flex uk-flex-right@m uk-flex-middle uk-flex-wrap">
-                        <span id="autoRunCountdown" class="uk-text-meta uk-margin-small-right" style="min-width:64px; display:inline-block;"></span>
+                        <!-- <span id="autoRunCountdown" class="uk-text-meta uk-margin-small-right" style="min-width:64px; display:inline-block;"></span> -->
 
                         <label class="uk-margin-small-left uk-flex uk-flex-middle">
                         <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">

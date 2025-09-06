@@ -2,6 +2,24 @@
 // UTILITY FUNCTIONS
 // =================================================================================
 
+// refactor: centralized dark-mode detector used across modules
+function isDarkMode() {
+    try {
+        // Highest priority: explicit body class toggled by app
+        if (typeof document !== 'undefined') {
+            const body = document.body || document.getElementsByTagName('body')[0];
+            if (body && body.classList && body.classList.contains('dark-mode')) return true;
+        }
+    } catch(_) {}
+    if (typeof getTheme === 'function') return String(getTheme()).toLowerCase().includes('dark');
+    if (typeof getDarkMode === 'function') return !!getDarkMode();
+    // CSS media query fallback
+    if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+}
+
 function getManagedChains() {
     const settings = getFromLocalStorage('SETTING_SCANNER', {});
     return settings.AllChains || Object.keys(CONFIG_CHAINS);
@@ -355,6 +373,8 @@ function applyThemeForMode() {
         const css = `
           :root { --theme-accent: ${accent}; }
           .theme-single .uk-table thead th, .theme-multi .uk-table thead th { background: var(--theme-accent) !important; }
+          /* Force dark header in dark mode (overrides chain accent) */
+          .dark-mode .uk-table thead th { background: #1c1c1e !important; color: #e8e8e8 !important; }
           #progress-bar { background-color: var(--theme-accent) !important; }
           #progress-container { border: 1px solid var(--theme-accent) !important; }
           .header-card { border-color: var(--theme-accent) !important; }
@@ -883,8 +903,8 @@ function setScanUIGating(isRunning) {
             // Allow only reload + dark mode toggle
             $('#reload, #darkModeToggle').css({ pointerEvents: 'auto', opacity: 1 });
             // Disable scanner config controls and filter card inputs
-            $('#scanner-config').find('input, select, button, textarea').prop('disabled', true);
-            $('#filter-card').find('input, select, button, textarea').prop('disabled', true);
+            $('#scanner-config').find('input, select, button, textarea').not('#btn-scroll-top').prop('disabled', true);
+            $('#filter-card').find('input, select, button, textarea').not('#btn-scroll-top').prop('disabled', true);
             // Keep Auto Scroll checkbox enabled and clickable during scanning
             $('#autoScrollCheckbox').prop('disabled', false).css({ pointerEvents: 'auto', opacity: 1 });
             // Some extra clickable items in page

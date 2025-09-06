@@ -2,8 +2,39 @@
 // SCANNER LOGIC
 // =================================================================================
 
+// refactor: keep scanner state minimal and explicit
 let animationFrameId;
 let isScanRunning = false;
+
+// refactor: centralized helpers for DEX cell UI
+function isAppDarkMode(){
+  try { return (typeof isDarkMode === 'function') ? !!isDarkMode() : (document.body && document.body.classList && document.body.classList.contains('dark-mode')); }
+  catch(_) { return false; }
+}
+
+// Ensure there is a status span right below the first <strong> in the cell
+function ensureDexStatusSpan(cell, defaultClass = 'uk-text-muted'){
+  if (!cell) return null;
+  let statusSpan = cell.querySelector('.dex-status');
+  if (statusSpan) return statusSpan;
+  const strong = cell.querySelector('strong');
+  const span = document.createElement('span');
+  span.className = `dex-status ${defaultClass}`.trim();
+  if (strong) {
+    const br = document.createElement('br');
+    strong.insertAdjacentElement('afterend', br);
+    br.insertAdjacentElement('afterend', span);
+  } else {
+    cell.appendChild(span);
+  }
+  return span;
+}
+
+function setDexCellErrorBg(cell, lightFallback = '#f39999'){
+  if (!cell) return;
+  try { cell.style.backgroundColor = isAppDarkMode() ? '#7e3636' : (lightFallback || '#f39999'); }
+  catch(_) { cell.style.backgroundColor = lightFallback || '#f39999'; }
+}
 
 /**
  * Start the scanning process for a flattened list of tokens.
@@ -15,12 +46,15 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     clearInterval(window.__autoRunInterval);
     window.__autoRunInterval = null;
     $('#autoRunCountdown').text(''); // REFACTORED
-    const lastAction = getFromLocalStorage('HISTORY', {});
-    if (lastAction && lastAction.action && lastAction.time) {
-        $('#infoAPP').text(`${lastAction.action} at ${lastAction.time}`);
-    } else {
-        $('#infoAPP').empty();
-    }
+    try {
+        const rows = await (window.getHistoryLog ? window.getHistoryLog() : Promise.resolve([]));
+        const last = Array.isArray(rows) && rows.length ? rows[rows.length - 1] : null;
+        if (last && last.action && last.time) {
+            $('#infoAPP').text(`${last.action} at ${last.time}`);
+        } else {
+            $('#infoAPP').empty();
+        }
+    } catch(_) { try { $('#infoAPP').empty(); } catch(_){} }
 
     const ConfigScan = settings;
     const mMode = getAppMode();
@@ -116,24 +150,9 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                 const { id, color, message, swapMessage } = updateData;
                 const cell = document.getElementById(id);
                 if (cell) {
-                    cell.style.backgroundColor = color || '#f39999';
-                    let statusSpan = cell.querySelector('.dex-status');
-                    if (!statusSpan) {
-                        const strong = cell.querySelector('strong');
-                        if (strong) {
-                            const br = document.createElement('br');
-                            strong.insertAdjacentElement('afterend', br);
-                            statusSpan = document.createElement('span');
-                            statusSpan.className = 'dex-status uk-text-danger';
-                           
-                            br.insertAdjacentElement('afterend', statusSpan);
-                        } else {
-                            statusSpan = document.createElement('span');
-                            statusSpan.className = 'dex-status uk-text-danger';
-                           
-                            cell.appendChild(statusSpan);
-                        }
-                    }
+                    // refactor: centralized dark-aware error color
+                    setDexCellErrorBg(cell, color || '#f39999');
+                    const statusSpan = ensureDexStatusSpan(cell, 'uk-text-danger');
                     statusSpan.classList.remove('uk-text-muted', 'uk-text-warning');
                     statusSpan.classList.add('uk-text-danger');
                     statusSpan.textContent = swapMessage || '[ERROR]';
@@ -216,23 +235,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const cell = document.getElementById(idCELL);
                                     if (!cell) return;
                                     cell.style.backgroundColor = '';
-                                    let statusSpan = cell.querySelector('.dex-status');
-                                    if (!statusSpan) {
-                                        const strong = cell.querySelector('strong');
-                                        if (strong) {
-                                            const br = document.createElement('br');
-                                            strong.insertAdjacentElement('afterend', br);
-                                            statusSpan = document.createElement('span');
-                                            statusSpan.className = 'dex-status';
-                           
-                                            br.insertAdjacentElement('afterend', statusSpan);
-                                        } else {
-                                            statusSpan = document.createElement('span');
-                                            statusSpan.className = 'dex-status';
-                           
-                                            cell.appendChild(statusSpan);
-                                        }
-                                    }
+                                    const statusSpan = ensureDexStatusSpan(cell, '');
                                     statusSpan.removeAttribute('title');
                                     statusSpan.classList.remove('uk-text-muted', 'uk-text-warning', 'uk-text-danger');
                                     if (status === 'checking') {
@@ -243,7 +246,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         statusSpan.textContent = 'Check SWOOP';
                                         if (message) statusSpan.title = `Initial Error: ${message}`;
                                     } else if (status === 'error' || status === 'fallback_error') {
-                                        cell.style.backgroundColor = '#ffcccc';
+                                        // refactor: centralized dark-aware error color
+                                        setDexCellErrorBg(cell, '#ffcccc');
                                         statusSpan.classList.add('uk-text-danger');
                                         statusSpan.textContent = '[ERROR]';
                                         if (message) statusSpan.title = message;

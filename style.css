@@ -434,7 +434,7 @@ body.dark-mode {
 .dark-mode .uk-modal-dialog {
     background-color: #2c2c2e; /* Charcoal gray */
     border-color: #444444;
-    color: #d1d1d1;
+    color: #5562fe;
 }
 
 .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h5, .dark-mode h6,
@@ -500,11 +500,11 @@ body.dark-mode {
 }
 
 .dark-mode .uk-table tbody tr:nth-child(even) {
-    background-color: #3a3a3c; /* Subtle stripe */
+    background-color: #514e4e; /* Subtle stripe */
 }
 
 .dark-mode .uk-table tbody tr:hover {
-    background-color: #4a4a4c;
+    background-color: #454548;
 }
 
 .dark-mode .uk-modal-header {

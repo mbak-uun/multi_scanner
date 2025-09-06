@@ -537,16 +537,7 @@ function getChainColorHexByName(chainName) { // REFACTORED
   return cfg?.WARNA || cfg?.COLOR_CHAIN || '#94fa95';
 }
 
-// Helper: detect dark mode (basic). Overrideable if app provides getTheme/getDarkMode
-function isDarkMode() { // REFACTORED
-  if (typeof getTheme === 'function') return String(getTheme()).toLowerCase().includes('dark');
-  if (typeof getDarkMode === 'function') return !!getDarkMode();
-  // CSS class or media query fallback
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  return false;
-}
+// refactor: use centralized isDarkMode() from utils.js
 
 /**
  * Render computed fees/PNL and swap link into a DEX cell; drive signal panel and Telegram.
@@ -685,8 +676,8 @@ function DisplayPNL(data) {
 
   const shouldHighlight = isHighlight || (pnl > feeAll);
   const chainColorHexHL = getChainColorHexByName(nameChain);
-  // In dark mode: keep a lighter green; else use chain color alpha
-  const hlBg = isDarkMode() ? hexToRgba('#7fffa0', 0.25) : hexToRgba(chainColorHexHL, 0.24);
+  // In dark mode: use white; else use chain color alpha
+  const hlBg = isDarkMode() ? '#ffffff' : hexToRgba(chainColorHexHL, 0.24);
   $mainCell.attr('style', shouldHighlight
     ? `border:1px solid #222;background-color:${hlBg}!important;font-weight:bolder!important;color:#000!important;vertical-align:middle!important;text-align:center!important;`
     : 'text-align:center;vertical-align:middle;');
@@ -738,7 +729,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   const warnaCEX = getWarnaCEX(cex);
   const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
   const baseId = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
-  const signalBg = isDarkMode() ? hexToRgba('#7fffa0', 0.25) : hexToRgba(warnaChain, 0.24);
+  const signalBg = isDarkMode() ? '#fff' : hexToRgba(warnaChain, 0.24);
   const highlightStyle = (Number(PNL) > filterPNLValue)
     ? `background-color:${signalBg}; font-weight:bolder;`
     : "";

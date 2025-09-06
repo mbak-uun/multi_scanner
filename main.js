@@ -3,7 +3,7 @@
 // =================================================================================
 
 // --- Global Variables ---
-const storagePrefix = "MULTICHECKER_";
+const storagePrefix = "MULTISCANNER_";
 const REQUIRED_KEYS = {
     SETTINGS: 'SETTING_SCANNER'
 };
@@ -14,31 +14,38 @@ let originalTokens = [];
 var SavedSettingData = getFromLocalStorage('SETTING_SCANNER', {});
 let activeSingleChainKey = null; // To track the currently active single-chain view
 
-// Configure Toastr to avoid top-right where toolbar resides
-// Configure Toastr if available (no try/catch) // REFACTORED
-if (typeof window !== 'undefined' && window.toastr) {
-    window.toastr.options = Object.assign({}, window.toastr.options || {}, {
-        positionClass: 'toast-top-right',
-        preventDuplicates: true,
-        newestOnTop: true,
-        closeButton: true,
-        progressBar: true,
-        timeOut: 3500
-    });
-}
+// refactor: toastr defaults are centralized in js/notify-shim.js
 
 // --- Application Initialization ---
 
 // Unified app state stored in one key: { run: 'YES'|'NO', darkMode: boolean, lastChain: string }
 function getAppState() {
+    // refactor: robust guard + shape
     const s = getFromLocalStorage('APP_STATE', {});
     return (s && typeof s === 'object') ? s : {};
 }
 function setAppState(patch) {
+    // refactor: shallow merge helper
     const cur = getAppState();
     const next = Object.assign({}, cur, patch || {});
     saveToLocalStorage('APP_STATE', next);
     return next;
+}
+
+// refactor: shared renderer for last action label from HISTORY_LOG
+function renderLastActionInfo(){
+    try {
+        const p = (window.getHistoryLog ? window.getHistoryLog() : Promise.resolve([]));
+        p.then(function(rows){
+            try {
+                const arr = Array.isArray(rows) ? rows : [];
+                const last = arr.length ? arr[arr.length - 1] : null;
+                if (last && last.time) {
+                    $("#infoAPP").show().text(`${last.action} at ${last.time}`);
+                }
+            } catch(_) {}
+        });
+    } catch(_) {}
 }
 
 // Floating scroll-to-top button for monitoring table (robust across browsers)
@@ -125,6 +132,58 @@ function setAppState(patch) {
 })();
 
 // Storage helpers moved to utils.js for modular use across app.
+
+// Initialize single selector for MULTICHAIN and all per-chain
+(function initModeChainSelector(){
+    try {
+        const sel = document.getElementById('modeChainSelect');
+        if (!sel) return;
+
+        function populate() {
+            try {
+                sel.innerHTML = '';
+                // MULTICHAIN option
+                const optAll = document.createElement('option');
+                optAll.value = 'all';
+                optAll.textContent = 'MULTICHAIN';
+                sel.appendChild(optAll);
+
+                // Per-chain options from CONFIG_CHAINS
+                const cfg = window.CONFIG_CHAINS || {};
+                Object.keys(cfg).forEach(k => {
+                    const item = cfg[k] || {};
+                    const label = (item.Nama_Chain || item.nama_chain || item.name || k).toString().toUpperCase();
+                    const opt = document.createElement('option');
+                    opt.value = String(k).toLowerCase();
+                    opt.textContent = label;
+                    sel.appendChild(opt);
+                });
+
+                // Reflect current mode
+                const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
+                sel.value = (String(m.type).toLowerCase() === 'single')
+                    ? String(m.chain || '').toLowerCase()
+                    : 'all';
+            } catch(_) {}
+        }
+
+        populate();
+
+        sel.addEventListener('change', function(){
+            try {
+                const v = String(this.value || '').toLowerCase();
+                if (v === 'all' || !v) {
+                    window.location.href = 'index.html?chain=all';
+                } else {
+                    try { setAppState({ lastChain: v }); } catch(_) {}
+                    window.location.href = `index.html?chain=${encodeURIComponent(v)}`;
+                }
+            } catch(_) {}
+        });
+    } catch(_) {}
+})();
+
+// (removed) chain-only selector; replaced by single modeChain selector
 
 /**
  * Refreshes the main token table from localStorage data.
@@ -446,10 +505,8 @@ function cekDataAwal() {
     $("#infoAPP").show().html(errorMessages.join("<br/>"));
   }
 
-  const dataACTION = getFromLocalStorage('HISTORY');
-  if (dataACTION && dataACTION.time) {
-    $("#infoAPP").show().text(`${dataACTION.action} at ${dataACTION.time}`);
-  }
+  // refactor: use shared renderer
+  try { renderLastActionInfo(); } catch(_) {}
 }
 
 
@@ -571,6 +628,8 @@ async function deferredInit() {
 
                 // Clear both monitoring and management search boxes after filter change
                 try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
+                // Also clear any existing signal cards produced by a previous scan
+                try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch(_) {}
                 refreshTokensTable();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -655,6 +714,8 @@ async function deferredInit() {
                 try { toastr.info(msg); } catch(_){ }
                 // Clear both monitoring and management search boxes after filter change
                 try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
+                // Also clear any existing signal cards produced by a previous scan
+                try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch(_) {}
                 loadAndDisplaySingleChainTokens();
                 try { renderTokenManagementList(); } catch(_) {}
                 renderFilterCard();
@@ -764,6 +825,12 @@ async function deferredInit() {
         setAppState({ darkMode: isDark });
         updateDarkIcon(isDark);
         try { if (typeof window.updateSignalTheme === 'function') window.updateSignalTheme(); } catch(_) {}
+        // Re-render DEX cells to apply updated highlight background
+        try {
+            const mode = getAppMode();
+            if (String(mode.type).toLowerCase() === 'single') { loadAndDisplaySingleChainTokens(); }
+            else { refreshTokensTable(); }
+        } catch(_) {}
     });
 
     $('.sort-toggle').off('click').on('click', function () {
@@ -808,6 +875,8 @@ async function deferredInit() {
             setPNLFilter(clean);
             $(this).val(clean);
             try { toastr.info(`PNL Filter diset: $${clean}`); } catch(_) {}
+            // Clear previously displayed scan signal cards when PNL filter changes
+            try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch(_) {}
         } catch(_) {}
     });
 
@@ -1306,6 +1375,7 @@ $("#startSCAN").click(function () {
             }
             setTokensMulti(multi);
             toastr.success('Koin berhasil disalin ke mode Multichain');
+            $('#FormEditKoinModal').hide();
             try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(_){}
         } catch(e) {
             console.error('Copy to Multichain failed:', e);
@@ -1669,7 +1739,7 @@ $("#startSCAN").click(function () {
         $('#sync-modal-tbody tr:visible .sync-token-checkbox').prop('checked', this.checked);
     });
 
-    // Removed legacy single-chain start button handler (using unified #startSCAN now)
+    
 }
 
 $(document).ready(function() {
@@ -1706,7 +1776,28 @@ $(document).ready(function() {
             window.whenStorageReady.then(() => {
                 try {
                     const st = getAppState();
+                    // Re-apply run gating
                     applyRunUI(st && st.run === 'YES');
+                    // Re-apply dark theme after IndexedDB cache warms up (with fallback)
+                    let isDarkNow = (st && typeof st.darkMode === 'boolean') ? st.darkMode : null;
+                    if (isDarkNow === null) {
+                        try {
+                            const m1 = getAppMode();
+                            if (m1 && String(m1.type).toLowerCase() === 'single') {
+                                const f = getFromLocalStorage(`FILTER_${String(m1.chain).toUpperCase()}`, {});
+                                if (typeof f.darkMode === 'boolean') isDarkNow = f.darkMode;
+                            } else {
+                                const f2 = getFromLocalStorage('FILTER_MULTICHAIN', {});
+                                if (typeof f2.darkMode === 'boolean') isDarkNow = f2.darkMode;
+                            }
+                        } catch(_) {}
+                        if (isDarkNow === null) isDarkNow = false;
+                    }
+                    const $body = $('body');
+                    if (isDarkNow) { $body.addClass('dark-mode uk-dark').removeClass('uk-light'); }
+                    else { $body.removeClass('dark-mode uk-dark'); }
+                    try { updateDarkIcon(isDarkNow); } catch(_) {}
+                    try { if (typeof applyThemeForMode === 'function') applyThemeForMode(); } catch(_) {}
                 } catch(_) {}
             });
         }
@@ -1721,6 +1812,17 @@ $(document).ready(function() {
             if (String(msg.key).toUpperCase() !== 'APP_STATE') return;
             const r = (msg.val && msg.val.run) ? String(msg.val.run).toUpperCase() : 'NO';
             applyRunUI(r === 'YES');
+            // React to darkMode updates across tabs
+            try {
+                if (Object.prototype.hasOwnProperty.call(msg.val || {}, 'darkMode')) {
+                    const isDarkNow = !!msg.val.darkMode;
+                    const $body = $('body');
+                    if (isDarkNow) { $body.addClass('dark-mode uk-dark').removeClass('uk-light'); }
+                    else { $body.removeClass('dark-mode uk-dark'); }
+                    try { updateDarkIcon(isDarkNow); } catch(_) {}
+                    try { if (typeof applyThemeForMode === 'function') applyThemeForMode(); } catch(_) {}
+                }
+            } catch(_) {}
             if (r === 'NO') {
                 const running = (typeof isScanRunning !== 'undefined') ? !!isScanRunning : false;
                 if (running) {
@@ -1731,14 +1833,28 @@ $(document).ready(function() {
         });
     }
 
-    const isDark = !!appStateInit.darkMode;
+    let isDark = (typeof appStateInit.darkMode === 'boolean') ? appStateInit.darkMode : null;
+    if (isDark === null) {
+        // Fallback: try read from filter storage per mode
+        try {
+            const m0 = getAppMode();
+            if (m0 && String(m0.type).toLowerCase() === 'single') {
+                const f = getFromLocalStorage(`FILTER_${String(m0.chain).toUpperCase()}`, {});
+                if (typeof f.darkMode === 'boolean') isDark = f.darkMode;
+            } else {
+                const f2 = getFromLocalStorage('FILTER_MULTICHAIN', {});
+                if (typeof f2.darkMode === 'boolean') isDark = f2.darkMode;
+            }
+        } catch(_) {}
+        if (isDark === null) isDark = false;
+    }
     if (isDark) {
         $('body').addClass('dark-mode uk-dark').removeClass('uk-light');
     } else {
         $('body').removeClass('dark-mode uk-dark');
     }
 
-    // $('#namachain').text("MULTICHECKER");
+    // $('#namachain').text("MULTISCANNER");
     $('#sinyal-container').css('color', 'black');
     $('h4#daftar,h4#judulmanajemenkoin').css({ 'color': 'white', 'background': `linear-gradient(to right, #5c9513, #ffffff)`, 'padding-left': '7px', 'border-radius': '5px' });
 
@@ -1840,7 +1956,7 @@ $(document).ready(function() {
         $('#single-chain-title').text(`Scanner: ${chainConfig.Nama_Chain || requested.toUpperCase()}`);
         $('#single-chain-view').show();
         setHomeHref(requested);
-        // try { renderSingleChainFilters(requested); } catch(_) {} // Legacy filter - REMOVED
+        
         try { loadAndDisplaySingleChainTokens(); } catch(e) { console.error('single-chain init error', e); }
         try { applySortToggleState(); } catch(_) {}
         try { syncPnlInputFromStorage(); } catch(_) {}
@@ -2110,7 +2226,6 @@ function setLastAction(action, statusOrMeta, maybeMeta) {
     } catch(_) {}
 
     const lastAction = { time: formattedTime, action: displayAction };
-    try { saveToLocalStorage("HISTORY", lastAction); } catch(_) {}
     try { $("#infoAPP").html(`${lastAction.action} at ${lastAction.time}`); } catch(_) {}
     // Also append to HISTORY_LOG in IndexedDB with same label
     try {
@@ -2191,7 +2306,7 @@ $(document).on('click', '#histClearAll', async function(){
         try {
             const payload = await (window.exportIDB ? window.exportIDB() : Promise.resolve(null));
             if (!payload || !payload.items) { toastr.error('Gagal membuat backup.'); return; }
-            const filename = `MULTICHECKER_BACKUP_${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+            const filename = `MULTISCANNER_BACKUP_${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
             const ok = window.downloadJSON ? window.downloadJSON(filename, payload) : false;
             if (ok) {
                 toastr.success(`Backup berhasil. ${payload.count||payload.items.length} item disalin.`);
@@ -2222,10 +2337,10 @@ $(document).on('click', '#histClearAll', async function(){
                 }
                 // Info jika DB/Store berbeda (tetap lanjut restore)
                 try {
-                    if (json.db && String(json.db) !== 'MULTICHECKER_DB') {
+                    if (json.db && String(json.db) !== 'MULTISCANNER_DB') {
                         toastr.warning(`Nama database berbeda: ${json.db}`);
                     }
-                    if (json.store && String(json.store) !== 'MULTICHECKER_KV') {
+                    if (json.store && String(json.store) !== 'MULTISCANNER_KV') {
                         toastr.warning(`Nama store berbeda: ${json.store}`);
                     }
                 } catch(_) {}

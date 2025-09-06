@@ -1,8 +1,8 @@
     // IndexedDB-based storage with in-memory cache.
-    // Object store (table) names use prefix MULTICHECKER_.
+    // Object store (table) names use prefix MULTISCANNER_.
     (function initIndexedDBStorage(){
-        const DB_NAME = 'MULTICHECKER_DB';
-        const STORE_KV = 'MULTICHECKER_KV';
+        const DB_NAME = 'MULTISCANNER_DB';
+        const STORE_KV = 'MULTISCANNER_KV';
         const cache = {}; // runtime cache for sync reads
         let db = null;
 
@@ -10,12 +10,29 @@
             return new Promise((resolve, reject)=>{
                 if (db) return resolve(db);
                 try{
-                    const req = indexedDB.open(DB_NAME, 1);
+                    // Open without explicit version to avoid VersionError when DB was upgraded elsewhere
+                    const req = indexedDB.open(DB_NAME);
                     req.onupgradeneeded = (ev)=>{
                         const d = ev.target.result;
                         if (!d.objectStoreNames.contains(STORE_KV)) d.createObjectStore(STORE_KV, { keyPath:'key' });
                     };
-                    req.onsuccess = (ev)=>{ db = ev.target.result; resolve(db); };
+                    req.onsuccess = (ev)=>{
+                        const d = ev.target.result;
+                        // Ensure required store exists; if not, perform lightweight upgrade to add it
+                        if (!d.objectStoreNames.contains(STORE_KV)){
+                            const nextVersion = (d.version || 1) + 1;
+                            d.close();
+                            const up = indexedDB.open(DB_NAME, nextVersion);
+                            up.onupgradeneeded = (e2)=>{
+                                const udb = e2.target.result;
+                                if (!udb.objectStoreNames.contains(STORE_KV)) udb.createObjectStore(STORE_KV, { keyPath:'key' });
+                            };
+                            up.onsuccess = (e2)=>{ db = e2.target.result; resolve(db); };
+                            up.onerror = (e2)=>{ reject(e2.target.error || new Error('IDB upgrade failed')); };
+                        } else {
+                            db = d; resolve(db);
+                        }
+                    };
                     req.onerror = (ev)=>{ reject(ev.target.error || new Error('IDB open failed')); };
                 } catch(e){ reject(e); }
             });
@@ -100,7 +117,7 @@
         try { window.whenStorageReady = warmCacheAll(); } catch(_){}
 
         // Initialize cross-tab channel for state sync (best-effort)
-        try { window.__MC_BC = window.__MC_BC || new BroadcastChannel('MULTICHECKER_APP'); } catch(_) {}
+        try { window.__MC_BC = window.__MC_BC || new BroadcastChannel('MULTISCANNER_APP'); } catch(_) {}
 
         // Public API (kept sync signatures to avoid large refactor)
         window.getFromLocalStorage = function(key, defaultValue){
@@ -353,7 +370,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `KOIN_MULTICHECKER_${chainLabel}.csv`;
+        a.download = `KOIN_MULTISCANNER_${chainLabel}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

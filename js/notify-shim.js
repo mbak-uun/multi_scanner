@@ -4,14 +4,15 @@
   // Sensible defaults
   try {
     if (hasToastr) {
+      // Use app-wide defaults here so we don't need extra config elsewhere
       window.toastr.options = Object.assign({
-        positionClass: 'toast-bottom-right',
+        positionClass: 'toast-top-center',
         timeOut: 3500,
         extendedTimeOut: 1500,
         closeButton: true,
         progressBar: true,
         newestOnTop: true,
-        preventDuplicates: false,
+        preventDuplicates: true,
       }, window.toastr.options || {});
     }
   } catch(_) {}
