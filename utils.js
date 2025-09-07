@@ -2,24 +2,6 @@
 // UTILITY FUNCTIONS
 // =================================================================================
 
-// refactor: centralized dark-mode detector used across modules
-function isDarkMode() {
-    try {
-        // Highest priority: explicit body class toggled by app
-        if (typeof document !== 'undefined') {
-            const body = document.body || document.getElementsByTagName('body')[0];
-            if (body && body.classList && body.classList.contains('dark-mode')) return true;
-        }
-    } catch(_) {}
-    if (typeof getTheme === 'function') return String(getTheme()).toLowerCase().includes('dark');
-    if (typeof getDarkMode === 'function') return !!getDarkMode();
-    // CSS media query fallback
-    if (typeof window !== 'undefined' && window.matchMedia) {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-}
-
 function getManagedChains() {
     const settings = getFromLocalStorage('SETTING_SCANNER', {});
     return settings.AllChains || Object.keys(CONFIG_CHAINS);
@@ -111,8 +93,8 @@ function setPNLFilter(value) {
 
 function getFilterMulti() {
     const f = getFromLocalStorage('FILTER_MULTICHAIN', null);
-    if (f && typeof f === 'object') return { chains: f.chains || [], cex: f.cex || [] };
-    return { chains: [], cex: [] };
+    if (f && typeof f === 'object') return { chains: f.chains || [], cex: f.cex || [], dex: (f.dex || []).map(x => String(x).toLowerCase()) };
+    return { chains: [], cex: [], dex: [] };
 }
 
 function setFilterMulti(val){
@@ -124,6 +106,9 @@ function setFilterMulti(val){
     }
     if (val && Object.prototype.hasOwnProperty.call(val, 'cex')) {
         next.cex = (val.cex || []).map(x => String(x).toUpperCase());
+    }
+    if (val && Object.prototype.hasOwnProperty.call(val, 'dex')) {
+        next.dex = (val.dex || []).map(x => String(x).toLowerCase());
     }
     saveToLocalStorage('FILTER_MULTICHAIN', next);
 }
@@ -144,8 +129,8 @@ function getFilterChain(chain){
             }
         }
     }
-    if (f && typeof f==='object') return { cex: (f.cex||[]).map(String), pair: (f.pair||[]).map(x=>String(x).toUpperCase()) };
-    return { cex: [], pair: [] };
+    if (f && typeof f==='object') return { cex: (f.cex||[]).map(String), pair: (f.pair||[]).map(x=>String(x).toUpperCase()), dex: (f.dex||[]).map(x=>String(x).toLowerCase()) };
+    return { cex: [], pair: [], dex: [] };
 }
 
 function setFilterChain(chain, val){
@@ -157,6 +142,9 @@ function setFilterChain(chain, val){
     }
     if (val && Object.prototype.hasOwnProperty.call(val, 'pair')) {
         next.pair = (val.pair || []).map(x => String(x).toUpperCase());
+    }
+    if (val && Object.prototype.hasOwnProperty.call(val, 'dex')) {
+        next.dex = (val.dex || []).map(x => String(x).toLowerCase());
     }
     saveToLocalStorage(key, next);
 }
@@ -227,9 +215,10 @@ function setTokensMulti(list){
     if (nowHas && hadNoneBefore) {
         const chains = Object.keys(window.CONFIG_CHAINS || {}).map(k => String(k).toLowerCase());
         const cex = Object.keys(window.CONFIG_CEX || {}).map(k => String(k).toUpperCase());
+        const dex = Object.keys(window.CONFIG_DEXS || {}).map(k => String(k).toLowerCase());
         const existing = getFromLocalStorage('FILTER_MULTICHAIN', null);
-        const empty = !existing || (!Array.isArray(existing.chains) && !Array.isArray(existing.cex)) || ((existing.chains||[]).length===0 && (existing.cex||[]).length===0);
-        if (empty) setFilterMulti({ chains, cex });
+        const empty = !existing || ((existing.chains||[]).length===0 && (existing.cex||[]).length===0 && (existing.dex||[]).length===0);
+        if (empty) setFilterMulti({ chains, cex, dex });
     }
 }
 
@@ -294,10 +283,11 @@ function setTokensChain(chain, list){
         const cfg = (window.CONFIG_CHAINS || {})[chainKey] || {};
         const cex = Object.keys(cfg.WALLET_CEX || window.CONFIG_CEX || {}).map(k => String(k));
         const pairs = Array.from(new Set([...(Object.keys(cfg.PAIRDEXS || {})), 'NON'])).map(x => String(x).toUpperCase());
+        const dex = (cfg.DEXS || []).map(x => String(x).toLowerCase());
         const fkey = `FILTER_${String(chainKey).toUpperCase()}`;
         const existing = getFromLocalStorage(fkey, null);
-        const empty = !existing || ((existing.cex||[]).length===0 && (existing.pair||[]).length===0);
-        if (empty) setFilterChain(chain, { cex, pair: pairs });
+        const empty = !existing || ((existing.cex||[]).length===0 && (existing.pair||[]).length===0 && (existing.dex||[]).length===0);
+        if (empty) setFilterChain(chain, { cex, pair: pairs, dex });
     }
 }
 
@@ -361,6 +351,18 @@ function applyThemeForMode() {
             body.classList.add('theme-multi');
         }
 
+        // Apply dark-mode based on per-mode state
+        try {
+            const st = (typeof getAppState === 'function') ? getAppState() : { darkMode: false };
+            if (st && st.darkMode) {
+                body.classList.add('dark-mode', 'uk-dark');
+                body.classList.remove('uk-light');
+            } else {
+                body.classList.remove('dark-mode', 'uk-dark');
+            }
+            try { if (typeof updateDarkIcon === 'function') updateDarkIcon(!!st.darkMode); } catch(_) {}
+        } catch(_) {}
+
         root.style.setProperty('--theme-accent', accent);
         const chainLabel = document.getElementById('current-chain-label');
         if (chainLabel) {
@@ -368,13 +370,34 @@ function applyThemeForMode() {
             chainLabel.style.color = accent;
         }
 
+        // Update document title and favicon based on mode
+        try {
+            // Cache default favicon once
+            const fav = document.querySelector('link#favicon');
+            if (fav && !window.DEFAULT_FAVICON_HREF) {
+                window.DEFAULT_FAVICON_HREF = fav.getAttribute('href');
+            }
+            if (m.type === 'single') {
+                const cfg = (window.CONFIG_CHAINS || {})[m.chain] || {};
+                const nm = (cfg.Nama_Pendek || cfg.Nama_Chain || m.chain || 'CHAIN').toString().toUpperCase();
+                document.title = `${nm} SCANNER`;
+                if (fav) fav.setAttribute('href', cfg.ICON || window.DEFAULT_FAVICON_HREF || fav.getAttribute('href'));
+            } else {
+                document.title = 'ALL SCANNER';
+                if (fav && window.DEFAULT_FAVICON_HREF) fav.setAttribute('href', window.DEFAULT_FAVICON_HREF);
+            }
+        } catch(_) {}
+
         // Inject or update a style tag for theme overrides
         let styleEl = document.getElementById('dynamic-theme-style');
         const css = `
           :root { --theme-accent: ${accent}; }
-          .theme-single .uk-table thead th, .theme-multi .uk-table thead th { background: var(--theme-accent) !important; }
-          /* Force dark header in dark mode (overrides chain accent) */
-          .dark-mode .uk-table thead th { background: #1c1c1e !important; color: #e8e8e8 !important; }
+          /* Use accent header only in light mode */
+          body.theme-single:not(.dark-mode) .uk-table thead th,
+          body.theme-multi:not(.dark-mode) .uk-table thead th { background: var(--theme-accent) !important; }
+          /* Dark-mode: force dark header for monitoring tables */
+          body.dark-mode .uk-table thead th { background: #1c1c1e !important; color: #e8e8e8 !important; border-bottom: 1px solid #444 !important; }
+          body.dark-mode #tabel-monitoring thead { background: #1c1c1e !important; }
           #progress-bar { background-color: var(--theme-accent) !important; }
           #progress-container { border: 1px solid var(--theme-accent) !important; }
           .header-card { border-color: var(--theme-accent) !important; }
@@ -454,17 +477,7 @@ function linkifyStatus(flag, label, urlOk, colorOk = 'green') {
     return `<a href="${safe(urlOk)}" target="_blank" rel="noopener noreferrer" class="uk-text-bold" style="color:${color};">${text}</a>`;
 }
 
-/**
- * Gets a styled status label.
- * @param {boolean} flag - The status flag.
- * @param {string} type - The label type (e.g., 'DP').
- * @returns {string} HTML string for the label.
- */
-function getStatusLabel(flag, type) {
-    if (flag === true) return `<b style="color:green; font-weight:bold;">${type}</b>`;
-    if (flag === false) return `<b style="color:red; font-weight:bold;">${type.replace('P', 'X')}</b>`;
-    return `<b style="color:black; font-weight:bold;">${type.replace('P', '-')}</b>`;
-}
+// refactor: remove getStatusLabel (tidak dipakai); gunakan linkifyStatus untuk status DP/WD.
 
 /**
  * Converts a HEX color to an RGBA color.
@@ -472,10 +485,11 @@ function getStatusLabel(flag, type) {
  * @param {number} alpha - The alpha transparency value.
  * @returns {string} The RGBA color string.
  */
+// refactor: modernize to const
 function hexToRgba(hex, alpha) {
-    var r = parseInt(hex.slice(1, 3), 16);
-    var g = parseInt(hex.slice(3, 5), 16);
-    var b = parseInt(hex.slice(5, 7), 16);
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
@@ -510,18 +524,7 @@ function formatPrice(price) {
     return price.toFixed(6) + '$'; // Fallback jika format tidak dikenali
 }
 
-/**
- * Creates a simple hyperlink.
- * @param {string} url - The URL.
- * @param {string} text - The link text.
- * @param {string} [className=''] - Optional CSS class.
- * @returns {string} HTML string for the anchor tag.
- */
-function createLink(url, text, className = '') {
-    return url
-        ? `<a href="${url}" target="_blank" class="${className}"><b>${text}</b></a>`
-        : `<b>${text}</b>`;
-}
+// refactor: remove unused helper createLink (tidak dipakai)
 
 /**
  * Generates various URLs for a given CEX and token pair.
@@ -627,66 +630,9 @@ try {
     }
 } catch(_){}
 
-/**
- * Retrieves configuration data for a specific CEX.
- * @param {string} cexName - The name of the CEX (e.g., 'BINANCE').
- * @returns {object|null} The CEX configuration object or null if not found.
- */
-function getCexDataConfig(cexName) {
-    if (!cexName || typeof cexName !== 'string') return null;
+// refactor: remove unused getCexDataConfig (tidak dipakai di alur aplikasi)
 
-    const key = cexName.toUpperCase();
-    const cexData = (typeof CONFIG_CEX === 'object' && CONFIG_CEX[key]) ? CONFIG_CEX[key] : null;
-
-    if (!cexData) {
-        return null;
-    }
-
-    return {
-        NAME: key,
-        API_KEY: cexData.ApiKey || '',
-        API_SECRET: cexData.ApiSecret || '',
-        COLOR: cexData.WARNA || '#000'
-    };
-}
-
-/**
- * Retrieves configuration data for a specific DEX.
- * @param {string} dexName - The name of the DEX (e.g., 'kyberswap').
- * @returns {object|null} The DEX configuration object or null if not found.
- */
-function getDexData(dexName) {
-    if (!dexName || typeof dexName !== 'string') return null;
-
-    const nameLower = dexName.toLowerCase();
-    let dexKey = nameLower;
-    if (nameLower === '0x') dexKey = '0x';
-    if (nameLower === '1inch') dexKey = '1inch';
-
-    const dexConfig = (typeof CONFIG_DEXS === 'object') ? CONFIG_DEXS[dexKey] : undefined;
-
-    if (!dexConfig) {
-        return null;
-    }
-
-    const supportedChains = Object.keys(CONFIG_CHAINS || {})
-        .filter(chain => Array.isArray(CONFIG_CHAINS[chain].DEXS) && CONFIG_CHAINS[chain].DEXS.map(String).map(s => s.toLowerCase()).includes(dexKey))
-        .map(chain => ({
-            key: chain,
-            code: CONFIG_CHAINS[chain].Kode_Chain || '',
-            name: CONFIG_CHAINS[chain].Nama_Chain || chain,
-            short: CONFIG_CHAINS[chain].Nama_Pendek || '',
-            color: CONFIG_CHAINS[chain].WARNA || '#000'
-        }));
-
-    return {
-        NAME: dexKey,
-        HAS_BUILDER: typeof dexConfig.builder === 'function',
-        BUILDER: dexConfig.builder || null,
-        ALLOW_FALLBACK: !!dexConfig.allowFallback,
-        SUPPORTED_CHAINS: supportedChains
-    };
-}
+// refactor: remove unused getDexData (tidak dipakai di alur aplikasi)
 
 /**
  * Flattens the token data from TOKEN_SCANNER, creating a separate entry for each selected CEX.
@@ -799,6 +745,29 @@ try {
         window.getStableSymbols = window.getStableSymbols || getStableSymbols;
         window.getBaseTokenSymbol = window.getBaseTokenSymbol || getBaseTokenSymbol;
         window.getBaseTokenUSD = window.getBaseTokenUSD || getBaseTokenUSD;
+        // refactor: provide a small shared helper for dark mode checks
+        window.isDarkMode = window.isDarkMode || function isDarkMode(){
+            try { return !!(document && document.body && document.body.classList && document.body.classList.contains('dark-mode')); }
+            catch(_) { return false; }
+        };
+        // Resolve active DEX list based on mode + saved filters; fallback to config defaults
+        window.resolveActiveDexList = window.resolveActiveDexList || function resolveActiveDexList(){
+            try {
+                const m = getAppMode();
+                if (m.type === 'single') {
+                    const chain = String(m.chain).toLowerCase();
+                    const saved = getFilterChain(chain) || { dex: [] };
+                    const base = ((window.CONFIG_CHAINS || {})[chain] || {}).DEXS || [];
+                    const list = (Array.isArray(saved.dex) && saved.dex.length) ? saved.dex : base;
+                    return (list || []).map(x => String(x).toLowerCase());
+                } else {
+                    const saved = getFilterMulti() || { dex: [] };
+                    const base = Object.keys(window.CONFIG_DEXS || {});
+                    const list = (Array.isArray(saved.dex) && saved.dex.length) ? saved.dex : base;
+                    return (list || []).map(x => String(x).toLowerCase());
+                }
+            } catch(_) { return Object.keys(window.CONFIG_DEXS || {}).map(x => String(x).toLowerCase()); }
+        };
     }
 } catch(_){}
 
@@ -835,8 +804,14 @@ function generateDexLink(dex, chainName, codeChain, NameToken, sc_input, NamePai
     const lowerDex = dex.toLowerCase();
 
     // Find the correct DEX configuration key by checking if the input 'dex' string includes it.
-    // This handles cases like "kyberswap" and "kyberswap via LIFI".
-    const dexKey = Object.keys(CONFIG_DEXS).find(key => lowerDex.includes(key));
+    // This handles cases like "kyber" and "kyber via LIFI".
+    let dexKey = Object.keys(CONFIG_DEXS).find(key => lowerDex.includes(key));
+    // Backward compatibility: map legacy names to new keys
+    if (!dexKey) {
+        const synonyms = { kyberswap: 'kyber' };
+        const found = Object.keys(synonyms).find(oldKey => lowerDex.includes(oldKey));
+        if (found && CONFIG_DEXS[synonyms[found]]) dexKey = synonyms[found];
+    }
 
     if (dexKey && CONFIG_DEXS[dexKey] && typeof CONFIG_DEXS[dexKey].builder === 'function') {
         const builder = CONFIG_DEXS[dexKey].builder;
@@ -900,20 +875,26 @@ function setScanUIGating(isRunning) {
         if (isRunning) {
             // Dim and disable all toolbar actions
             $allToolbar.css({ pointerEvents: 'none', opacity: 0.4 });
-            // Allow only reload + dark mode toggle
-            $('#reload, #darkModeToggle').css({ pointerEvents: 'auto', opacity: 1 });
+            // Allow only reload (dark mode toggle ikut dinonaktifkan saat scan)
+            $('#reload').css({ pointerEvents: 'auto', opacity: 1 });
+            // Allow chain selection icons remain active during scan (including their img.icon children)
+            $('#chain-links-container a, #chain-links-container .chain-link, #chain-links-container .icon, #multichain_scanner, #multichain_scanner .icon')
+                .css({ pointerEvents: 'auto', opacity: 1 });
             // Disable scanner config controls and filter card inputs
             $('#scanner-config').find('input, select, button, textarea').not('#btn-scroll-top').prop('disabled', true);
             $('#filter-card').find('input, select, button, textarea').not('#btn-scroll-top').prop('disabled', true);
             // Keep Auto Scroll checkbox enabled and clickable during scanning
             $('#autoScrollCheckbox').prop('disabled', false).css({ pointerEvents: 'auto', opacity: 1 });
-            // Some extra clickable items in page
-            $('.sort-toggle, .edit-token-button, #chain-links-container a').css({ pointerEvents: 'none', opacity: 0.4 });
+            // Keep sort toggles and edit buttons clickable during scan per new requirement
+            $('.sort-toggle, .edit-token-button').css({ pointerEvents: 'auto', opacity: 1 });
             // Keep delete buttons active during scanning as requested
             $('.delete-token-button').css({ pointerEvents: 'auto', opacity: 1 });
-            // Lock token management & edit modal during scan
+            // Lock token management panel during scan, but allow Edit Koin modal to be fully editable
             $('#token-management').find('input, select, button, textarea').prop('disabled', true).css({ pointerEvents: 'none', opacity: 0.6 });
-            $('#FormEditKoinModal').find('input, select, button, textarea').prop('disabled', true).css({ pointerEvents: 'none', opacity: 0.6 });
+            $('#FormEditKoinModal').find('input, select, button, textarea').prop('disabled', false).css({ pointerEvents: 'auto', opacity: '' });
+            // In scanning state, only show Import and Batal in Edit modal
+            $('#FormEditKoinModal #HapusEditkoin, #FormEditKoinModal #SaveEditkoin').hide();
+            $('#FormEditKoinModal #CopyToMultiBtn, #FormEditKoinModal #BatalEditkoin').show().prop('disabled', false);
             // Keep STOP button usable during running
             $('#stopSCAN').prop('disabled', false).show();
             // Keep RELOAD usable (already via toolbar allow-list), disable START explicitly
@@ -927,6 +908,8 @@ function setScanUIGating(isRunning) {
             $('.sort-toggle, .edit-token-button, #chain-links-container a').css({ pointerEvents: '', opacity: '' });
             $('.delete-token-button').css({ pointerEvents: '', opacity: '' });
             $('#token-management, #FormEditKoinModal').find('input, select, button, textarea').prop('disabled', false).css({ pointerEvents: '', opacity: '' });
+            // Restore action buttons visibility (do not force Import visibility; openEditModalById handles normal mode)
+            $('#FormEditKoinModal #HapusEditkoin, #FormEditKoinModal #SaveEditkoin').show();
             // Ensure Auto Scroll remains interactive when idle too
             $('#autoScrollCheckbox').prop('disabled', false).css({ pointerEvents: 'auto', opacity: '' });
         }
@@ -959,7 +942,6 @@ try {
             createHoverLink,
             safeUrl,
             linkifyStatus,
-            getStatusLabel,
             hexToRgba,
             flattenDataKoin,
             getFeeSwap,

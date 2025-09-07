@@ -14,7 +14,7 @@ function applyControlsFor(state) {
     const $export = $('a[onclick="downloadTokenScannerCSV()"], #btnExportTokens');
     const $settingsIcon = $('#SettingConfig');
     const $toolIcons = $('.header-card .icon');
-    const $chainLinks = $('#chain-links-container a, #chain-links-container .chain-link'); // legacy (icons removed)
+    const $chainLinks = $('#chain-links-container a, #chain-links-container .chain-link');
     const $filterControls = $('#filter-card').find('input, .toggle-radio, button, label');
     const $sortToggles = $('.sort-toggle');
 
@@ -65,8 +65,6 @@ function applyControlsFor(state) {
         setClickableEnabled($toolIcons.add($chainLinks), true);
         setClickableEnabled($sortToggles, true);
         toggleFilterControls(true);
-        // Ensure mode/chain selectors are usable
-        try { $('#modeChainSelect').prop('disabled', false).css({ opacity: '', pointerEvents: '' }); } catch(_) {}
         // remove onboarding callouts
         $settingsIcon.removeClass('cta-settings').attr('title','CONFIG SCANNER');
         try { $('#sync-tokens-btn').removeClass('cta-highlight'); } catch(_){ }
@@ -98,8 +96,6 @@ function applyControlsFor(state) {
             $('#SettingConfig, #reload').css({ opacity: '', pointerEvents: '' }).prop('disabled', false);
             // Explicitly disable Manajemen Koin menu
             $('#ManajemenKoin,#multichain_scanner').css({ opacity: '0.5', pointerEvents: 'none' }).prop('disabled', true);
-            // Keep mode selector disabled until settings are provided
-            try { $('#modeChainSelect').prop('disabled', true).css({ opacity: '0.5', pointerEvents: 'none' }); } catch(_) {}
         } catch(_) {}
     } else if (state === 'MISSING_TOKENS') {
         setDisabled($import, false);
@@ -152,11 +148,11 @@ function updateDarkIcon(isDark) {
  * @param {string} style - CSS classes for the label.
  * @param {string} type - 'chain' or 'cex'.
  */
-
+// Legacy filter generator removed. Filtering UI is handled by new filter card in main.js.
 
 /** Render signal card containers per configured DEX. */
 function RenderCardSignal() {
-  const dexList = Object.keys(CONFIG_DEXS || {});
+  const dexList = (typeof window.resolveActiveDexList === 'function') ? window.resolveActiveDexList() : Object.keys(CONFIG_DEXS || {});
   const sinyalContainer = document.getElementById('sinyal-container');
   if (!sinyalContainer) return;
 
@@ -266,7 +262,8 @@ function RenderCardSignal() {
 // Expose updater to switch theme for signal cards when dark mode toggles
 window.updateSignalTheme = function() {
     try {
-        const isDark = document.body.classList.contains('dark-mode');
+        // refactor: use shared dark-mode helper
+        const isDark = (window.isDarkMode && window.isDarkMode()) || (document.body && document.body.classList.contains('dark-mode'));
         let chainColor = '#5c9514';
         const m = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
         if (m.type === 'single') {
@@ -279,17 +276,17 @@ window.updateSignalTheme = function() {
         cards.forEach(card => {
             // Body warna: putih (light), abu-abu gelap (dark)
             card.style.background = isDark ? '#424743ff' : '#ffffffff';
-            card.style.color = isDark ? '#ffffff' : '#000000';
+            card.style.color = isDark ? '#d8ff41' : '#000000';
             card.style.borderColor = chainColor;
             const header = card.querySelector('.uk-card-header');
             if (header) {
                 // Header warna: chainColor (light), hitam (dark)
                 header.style.backgroundColor = isDark ? '#000000' : chainColor;
-                header.style.color = '#ffffff';
+                header.style.color = '#d8ff41';
                 header.style.borderBottom = isDark ? '1px solid #000000' : `1px solid ${chainColor}`;
             }
             const span = card.querySelector('[id^="sinyal"]');
-            if (span) span.style.color = isDark ? '#ffffff' : '#000000';
+            if (span) span.style.color = isDark ? '#d8ff41' : '#000000';
         });
     } catch(_) {}
 };
@@ -369,7 +366,8 @@ function openEditModalById(id) {
                                          : getFromLocalStorage('TOKEN_MULTICHAIN', []);
     const token = (Array.isArray(tokens) ? tokens : []).find(t => String(t.id) === String(id));
     if (!token) {
-        toastr.error('Data token tidak ditemukan');
+        // refactor: use toast helper
+        if (typeof toast !== 'undefined' && toast.error) toast.error('Data token tidak ditemukan');
         return;
     }
 
@@ -414,6 +412,17 @@ function openEditModalById(id) {
     if (window.UIkit && UIkit.modal) {
         UIkit.modal('#FormEditKoinModal').show();
     }
+
+    // While scanning, keep modal inputs ON and restrict action buttons per requirement
+    try {
+        if (typeof isScanRunning !== 'undefined' && isScanRunning) {
+            const $modal = $('#FormEditKoinModal');
+            $modal.find('input, select, textarea').prop('disabled', false).css({ pointerEvents: 'auto', opacity: '' });
+            // Show only Import and Batal; hide Hapus and Simpan
+            $modal.find('#HapusEditkoin, #SaveEditkoin').hide();
+            $modal.find('#CopyToMultiBtn, #BatalEditkoin').show().prop('disabled', false);
+        }
+    } catch(_) {}
 }
 
 /** Apply themed colors to Edit Koin modal based on active chain. */
@@ -512,20 +521,22 @@ function buildDexCheckboxForKoin(token = {}) {
         container.append(`<div class="uk-flex uk-flex-middle uk-margin-small"><label class="uk-margin-small-right"><input type="checkbox" class="uk-checkbox dex-edit-checkbox" id="dex-${safeId}" value="${dexName}" ${isChecked ? 'checked' : ''}> <b>${dexName.toUpperCase()}</b></label><div class="uk-flex uk-flex-middle" style="gap:6px;"><input type="number" class="uk-input uk-form-xxsmall dex-left" id="dex-${safeId}-left" placeholder="KIRI" value="${leftVal}" style="width:88px;"><input type="number" class="uk-input uk-form-xxsmall dex-right" id="dex-${safeId}-right" placeholder="KANAN" value="${rightVal}" style="width:88px;"></div></div>`);
     });
 
-    container.off('change.max4').on('change.max4', '.dex-edit-checkbox', function(){
-        if (container.find('.dex-edit-checkbox:checked').length > 4) {
-            this.checked = false;
-            toastr.warning('Maksimal 4 DEX dipilih');
-        }
-    });
+    // Removed 4-DEX selection cap: no checkbox limit handler
 }
 
 /** Disable all form inputs globally. */
 function form_off() {
-    $('input, select, textarea, button').not('#btn-scroll-top').prop('disabled', true);
+    // Disable globally, but keep Edit buttons and Edit modal interactive
+    $('input, select, textarea, button')
+        .not('#btn-scroll-top')
+        .not('#FormEditKoinModal *')
+        .not('.edit-token-button')
+        .not('.mgrEdit')
+        .prop('disabled', true);
     // Whitelist critical controls to remain interactive during scanning
     try {
-        $('#stopSCAN, #reload, #darkModeToggle, #autoScrollCheckbox').prop('disabled', false);
+        // refactor: dark mode toggle juga ikut nonaktif saat scan
+        $('#stopSCAN, #reload, #autoScrollCheckbox').prop('disabled', false);
     } catch(_) {}
 }
 
