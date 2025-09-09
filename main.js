@@ -1723,6 +1723,8 @@ $("#startSCAN").click(function () {
 
     // Sync modal search + filter handlers
     $('#sync-search-input').on('input', debounce(function() {
+        // Reset select toggles when search changes
+        try { $('#sync-select-all, #sync-select-prechecked').prop('checked', false); } catch(_) {}
         renderSyncTable(activeSingleChainKey);
     }, 200));
 
@@ -1734,9 +1736,28 @@ $("#startSCAN").click(function () {
         renderSyncTable(activeSingleChainKey);
     });
 
-    // Sync modal select all
+    // Sync modal selection toggles (mutually exclusive)
+    // Pilih semua: jika ON → uncheck toggle lain dan pilih semua; jika OFF → hapus semua pilihan
     $('#sync-select-all').on('change', function() {
-        $('#sync-modal-tbody tr:visible .sync-token-checkbox').prop('checked', this.checked);
+        const on = this.checked;
+        if (on) {
+            $('#sync-select-prechecked').prop('checked', false);
+            $('#sync-modal-tbody .sync-token-checkbox').prop('checked', true);
+        } else {
+            $('#sync-modal-tbody .sync-token-checkbox').prop('checked', false);
+        }
+    });
+    // Pilih yang sudah dipilih (pre-checked dari DB): jika ON → uncheck toggle lain dan pilih hanya baris yang punya data-prechecked=1; jika OFF → hapus semua pilihan
+    $('#sync-select-prechecked').on('change', function() {
+        const on = this.checked;
+        if (on) {
+            $('#sync-select-all').prop('checked', false);
+            // Clear all then select only rows flagged prechecked
+            $('#sync-modal-tbody .sync-token-checkbox').prop('checked', false);
+            $('#sync-modal-tbody .sync-token-checkbox[data-prechecked="1"]').prop('checked', true);
+        } else {
+            $('#sync-modal-tbody .sync-token-checkbox').prop('checked', false);
+        }
     });
 
     
@@ -2064,6 +2085,8 @@ $(document).ready(function() {
     window.renderSyncTable = function(chainKey) {
         const $modal = $('#sync-modal');
         const modalBody = $('#sync-modal-tbody').empty();
+        // Reset selection toggles when table re-renders
+        try { $('#sync-select-all, #sync-select-prechecked').prop('checked', false); } catch(_) {}
         const raw = $modal.data('remote-raw') || [];
         const savedTokens = $modal.data('saved-tokens') || [];
         const chainCfg = CONFIG_CHAINS[chainKey] || {};
@@ -2155,7 +2178,7 @@ $(document).ready(function() {
               : '';
             const row = `
                 <tr>
-                    <td><input type="checkbox" class="uk-checkbox sync-token-checkbox" data-index="${token._idx ?? index}" ${isChecked ? 'checked' : ''}></td>
+                    <td><input type="checkbox" class="uk-checkbox sync-token-checkbox" data-index="${token._idx ?? index}" data-prechecked="${isChecked ? '1' : '0'}" ${isChecked ? 'checked' : ''}></td>
                     <td>${symIn}${statusBadge}</td>
                     <td>${symOut}${pairDefs[symOut] ? '' : ' <span class="uk-text-danger uk-text-bold">[NON]</span>'}</td>
                     <td>${cexUp}</td>

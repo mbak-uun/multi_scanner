@@ -504,11 +504,15 @@
           <div class="uk-card uk-card-default uk-card-body uk-padding-small">
             <h6 class="uk-margin-small">4. Pilih Koin Hasil Filter</h6>
             <input id="sync-search-input" class="uk-input uk-form-small uk-margin-small" type="text" placeholder="Cari koin...">
+            <div class="uk-margin-small">
+              <label class="uk-margin-small-right"><input type="checkbox" id="sync-select-all" class="uk-checkbox"> Pilih semua</label>
+              <label><input type="checkbox" id="sync-select-prechecked" class="uk-checkbox"> Pilih yang sudah dipilih</label>
+            </div>
             <div class="uk-overflow-auto uk-margin-small-top" style="max-height:65vh; border:1px solid #ddd; border-radius:4px;">
               <table class="uk-table uk-table-divider uk-table-hover uk-table-small uk-margin-remove">
                 <thead style="position:sticky; top:0; background:#fff; z-index:1;">
                   <tr>
-                    <th style="width:32px;"><input type="checkbox" id="sync-select-all"></th>
+                    <th style="width:32px;"></th>
                     <th>Symbol</th>
                     <th>Pair</th>
                     <th>CEX</th>
