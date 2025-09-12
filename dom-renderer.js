@@ -818,53 +818,8 @@ function DisplayPNL(data) {
   }
 
   // Console summary: ringkasan kalkulasi scanning (toggled via #toggleScanLog)
-  try {
-    if (!(typeof window !== 'undefined' && window.SCAN_LOG_ENABLED === true)) {
-      throw new Error('scan log disabled');
-    }
-    // Resolve WD/DP status dari list token aktif (jika ada)
-    // Tambahkan status detail untuk Token & Pair agar jelas konteks ON/OFF mengacu ke apa.
-    let wdFlag, dpFlag; let wdFeeToken = null;
-    let wdTokenFlag, wdPairFlag, dpTokenFlag, dpPairFlag; // detail per entitas
-    try {
-      const list = (Array.isArray(window.singleChainTokensCurrent) && window.singleChainTokensCurrent.length)
-        ? window.singleChainTokensCurrent
-        : (Array.isArray(window.currentListOrderMulti) ? window.currentListOrderMulti : []);
-      // Flattened data disimpan sebagai (symbol_in = TOKEN, symbol_out = PAIR).
-      // Saat arah Pair→Token, Name_in=PAIR dan Name_out=TOKEN → perlu dibalik untuk pencarian.
-      const keyIn  = (direction === 'tokentopair') ? upper(Name_in)  : upper(Name_out);  // TOKEN (selalu TOKEN)
-      const keyOut = (direction === 'tokentopair') ? upper(Name_out) : upper(Name_in);   // PAIR  (selalu PAIR)
-      const hit = (list || []).find(t => String(t.cex).toUpperCase() === CEX
-        && String(t.symbol_in).toUpperCase() === keyIn
-        && String(t.symbol_out).toUpperCase() === keyOut
-        && String(t.chain).toLowerCase() === String(nameChain).toLowerCase());
-      if (hit) {
-        // WD selalu refer ke TOKEN; DP juga selalu refer ke TOKEN (konsisten)
-        wdFlag = hit.withdrawToken;
-        wdFeeToken = Number(hit.feeWDToken || 0);
-        dpFlag = hit.depositToken;
-        // Simpan status detail
-        wdTokenFlag = hit.withdrawToken;
-        wdPairFlag  = hit.withdrawPair;
-        dpTokenFlag = hit.depositToken;
-        dpPairFlag  = hit.depositPair;
-      }
-    } catch(_) {}
-
-    const f = (v) => (v===true ? 'ON' : (v===false ? 'OFF' : '?'));
-    const sep = '======================================';
-    const coinLine = (direction === 'tokentopair')
-      ? `${upper(Name_in)} => ${upper(Name_out)} on ${String(nameChain).toUpperCase()}`
-      : `${upper(Name_out)} => ${upper(Name_in)} on ${String(nameChain).toUpperCase()}`;
-    const procLine = (direction === 'tokentopair') ? `${CEX} => ${DEX}` : `${DEX} => ${CEX}`;
-    // Simbol tetap (token/pair) terlepas dari arah
-    const tokenSym = (direction === 'tokentopair') ? upper(Name_in)  : upper(Name_out);
-    const pairSym  = (direction === 'tokentopair') ? upper(Name_out) : upper(Name_in);
-
-    // Console logging (Time/ID Cell/Proses/PNL dsb.) dipindahkan ke layer scanner untuk
-    // menambahkan informasi status DEX dan sumber (VIA LIFI/SWOOP/DEX). Bagian ini
-    // dihapus agar tidak terjadi duplikasi log dan agar informasi tetap konsisten.
-  } catch(_) {}
+  // Catatan: blok logging internal dinonaktifkan untuk mencegah duplikasi
+  // dan mencegah pengisian flag WD/DP bersifat kondisional.
 
   // Fee & info (WD/DP sesuai arah) — FEE SWAP PISAH BARIS
   // WD link mengikuti arah (Token→Pair menggunakan withdrawTokenUrl) → sudah sesuai kebutuhan FARM(WD)
@@ -883,6 +838,8 @@ function DisplayPNL(data) {
       : cexLinks.deposit;
   // Tentukan status WD/DP dari token aktif (lihat data tersimpan)
   let wdFlag, dpFlag;
+  // Flag detail per entitas agar konsisten dikirim ke Telegram
+  let wdTokenFlag, wdPairFlag, dpTokenFlag, dpPairFlag;
   try {
     const list = (Array.isArray(window.singleChainTokensCurrent) && window.singleChainTokensCurrent.length)
       ? window.singleChainTokensCurrent
@@ -897,6 +854,11 @@ function DisplayPNL(data) {
       wdFlag = hit.withdrawToken; // WD selalu berdasarkan TOKEN
       // DP selalu berdasarkan TOKEN (samakan warna/teks untuk semua arah)
       dpFlag = hit.depositToken;
+      // Simpan flag detail TOKEN & PAIR untuk dikirim ke Telegram
+      wdTokenFlag = hit.withdrawToken;
+      dpTokenFlag = hit.depositToken;
+      wdPairFlag  = hit.withdrawPair;
+      dpPairFlag  = hit.depositPair;
     }
   } catch(_) {}
   const wdText = (wdFlag === false) ? '🈳 WX' : '🈳 WD';
@@ -955,9 +917,15 @@ function DisplayPNL(data) {
       ? (getFromLocalStorage('SETTING_SCANNER', {})?.nickname || '')
       : (typeof SavedSettingData !== 'undefined' ? (SavedSettingData?.nickname || '') : '');
 
+    // Kirim juga status WD/DP untuk TOKEN & PAIR agar pesan Telegram konsisten dengan tabel
     MultisendMessage(
       upper(cex), dextype, tokenData, Modal, pnl,
-      n(buyPrice), n(sellPrice), n(FeeSwap), n(FeeWD), feeAll, nickname, directionMsg
+      n(buyPrice), n(sellPrice), n(FeeSwap), n(FeeWD), feeAll, nickname, directionMsg,
+      // flags: depositToken, withdrawToken, depositPair, withdrawPair
+      (typeof dpTokenFlag !== 'undefined' ? dpTokenFlag : undefined),
+      (typeof wdTokenFlag  !== 'undefined' ? wdTokenFlag : undefined),
+      (typeof dpPairFlag  !== 'undefined' ? dpPairFlag  : undefined),
+      (typeof wdPairFlag  !== 'undefined' ? wdPairFlag  : undefined)
     );
   }
 

@@ -156,7 +156,7 @@ function sendStatusTELE(user, status) {
  * Send a detailed arbitrage signal message to Telegram.
  * Links include CEX trade pages and DEX aggregator swap link.
  */
-function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction) {
+function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction, depositTokenFlag, withdrawTokenFlag, depositPairFlag, withdrawPairFlag) {
     const chainConfig = CONFIG_CHAINS[String(tokenData.chain || '').toLowerCase()];
     if (!chainConfig) return;
 
@@ -180,27 +180,14 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
     const linkScToken = `${chainConfig.URL_Chain}/token/${tokenData.contractAddress}`;
     const linkScPair  = `${chainConfig.URL_Chain}/token/${tokenData.pairContractAddress}`;
 
-    // Resolve deposit/withdraw statuses for both token and pair
+    // Use explicit flags provided by caller (dom-renderer) for deposit/withdraw statuses
     const chainKey = String(tokenData.chain||'').toLowerCase();
-    let depTok, wdTok, depPair, wdPair;
+    let depTok = depositTokenFlag;
+    let wdTok  = withdrawTokenFlag;
+    let depPair = depositPairFlag;
+    let wdPair  = withdrawPairFlag;
     let stockLink = '#';
     try {
-        const listChain = (typeof getTokensChain === 'function') ? getTokensChain(chainKey) : [];
-        const listMulti = (typeof getTokensMulti === 'function') ? getTokensMulti() : [];
-        const flat = ([])
-            .concat(Array.isArray(listChain)? listChain : [])
-            .concat(Array.isArray(listMulti)? listMulti : []);
-        const flatAll = (typeof flattenDataKoin === 'function') ? flattenDataKoin(flat) : [];
-        const match = (flatAll || []).find(e =>
-            String(e.cex||'').toUpperCase() === String(cex||'').toUpperCase() &&
-            String(e.chain||'').toLowerCase() === chainKey &&
-            String(e.symbol_in||'').toUpperCase() === String(tokenData.symbol||'').toUpperCase() &&
-            String(e.symbol_out||'').toUpperCase() === String(tokenData.pairSymbol||'').toUpperCase()
-        );
-        if (match) {
-            depTok = match.depositToken; wdTok = match.withdrawToken; depPair = match.depositPair; wdPair = match.withdrawPair;
-        }
-
         // Build STOK link like detail column (#1 link stok)
         const chainData = getChainData(chainKey);
         const walletObj = chainData?.CEXCHAIN?.[String(cex).toUpperCase()] || {};
@@ -208,7 +195,6 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
             .filter(([k,v]) => /address/i.test(String(k)) && v && v !== '#')
             .map(([,v]) => String(v))[0];
         if (firstAddr) {
-            // use input token contract for stock inspection, aligned with direction
             const scForStock = (direction === 'cex_to_dex') ? tokenData.contractAddress : tokenData.pairContractAddress;
             stockLink = `${chainConfig.URL_Chain}/token/${scForStock}?a=${firstAddr}`;
         }
