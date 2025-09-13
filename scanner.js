@@ -117,6 +117,26 @@ function appendCellTitleById(id, line){
  * - For each token: fetch CEX orderbook → quote DEX routes → compute PNL → update UI
  */
 async function startScanner(tokensToScan, settings, tableBodyId) {
+    // Extra safety gate: if any RUN state is active (from FILTER_* cache) and
+    // this tab does not own the lock, prevent starting a new scan. This covers
+    // cases where RUN_LOCK TTL expired but another tab still effectively runs.
+    try {
+        const ownsLock = !!(typeof window !== 'undefined' && window.__RUN_LOCK_OWNED);
+        const anyRun = !!(window.RUN_STATES && Object.values(window.RUN_STATES).some(Boolean));
+        if (!ownsLock && anyRun) {
+            // Reflect remote running status in UI similar to active lock gating
+            $('#startSCAN').prop('disabled', true).addClass('uk-button-disabled').text('Running...').attr('aria-busy','true');
+            $('#stopSCAN').hide().prop('disabled', true);
+            try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch(_) {}
+            // Also toast a short message for clarity
+            try {
+                const msg = 'SCAN sedang berjalan di tab lain.';
+                if (typeof toast !== 'undefined' && toast.warning) toast.warning(msg); else console.warn(msg);
+            } catch(_) {}
+            return;
+        }
+    } catch(_) {}
+
     // Acquire global RUN_LOCK to ensure only one active scan across tabs
     try {
         const mLock = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
