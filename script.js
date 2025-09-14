@@ -3231,21 +3231,29 @@ class TokenPriceMonitor {
 
         const apiUrl = 'https://cors-proxy-rosy.vercel.app/api/tele-send';
 
+        const u = user ? String(user).toUpperCase() : '-';
+        const s = status ? String(status).toUpperCase() : '-';
         let message =
-            `#${user.toUpperCase()} is <b>${status}</b> in MULTIALL\n` +
+            `<b>#MULTISCANNER</b>\n` +
+            `<b>USER:</b> ${u} <b>[${s}]</b>\n` +
             `-------------------------------------------\n` +
-            `• <b>BSC</b>: ${bscCount} ` +
-            `• <b>Ethereum</b>: ${ethCount} \n` +
-            `• <b>Polygon</b>: ${polyCount} ` +
-            `• <b>Base</b>: ${baseCount} \n` +
-            `• <b>Arbitrum</b>: ${arbCount} `;
+            `• <b>BSC</b>: ${bscCount}\n` +
+            `• <b>Ethereum</b>: ${ethCount}\n` +
+            `• <b>Polygon</b>: ${polyCount}\n` +
+            `• <b>Base</b>: ${baseCount}\n` +
+            `• <b>Arbitrum</b>: ${arbCount}`;
 
         users.forEach(u => {
             const chatId = u.chat_id;
             fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message })
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'HTML',
+                    disable_web_page_preview: true
+                })
             }).catch(() => {});
         });
     }
@@ -3298,7 +3306,12 @@ class TokenPriceMonitor {
             fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: u.chat_id, text: message })
+                body: JSON.stringify({
+                    chat_id: u.chat_id,
+                    text: message,
+                    parse_mode: 'HTML',
+                    disable_web_page_preview: true
+                })
             }).catch(() => {});
         });
     }

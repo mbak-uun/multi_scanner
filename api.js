@@ -142,7 +142,12 @@ function sendTelegramHTML(message) {
     try {
         if (!CONFIG_TELEGRAM || !CONFIG_TELEGRAM.CHAT_ID) return;
         const url = "https://cors-proxy-rosy.vercel.app/api/tele-send";
-        const payload = { chat_id: CONFIG_TELEGRAM.CHAT_ID, text: message };
+        const payload = {
+            chat_id: CONFIG_TELEGRAM.CHAT_ID,
+            text: message,
+            parse_mode: "HTML",
+            disable_web_page_preview: true
+        };
         // Use fetch with JSON body as per provided server contract
         fetch(url, {
             method: "POST",
@@ -153,7 +158,10 @@ function sendTelegramHTML(message) {
 }
 
 function sendStatusTELE(user, status) {
-    const message = `<b>#MULTISCANNER</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>`;
+    const u = user ? String(user).toUpperCase() : '-';
+    const s = status ? String(status).toUpperCase() : '-';
+    // Format: USER: <NAME> [STATUS], with the bracketed status bolded
+    const message = `<b>#MULTISCANNER</b>\n<b>USER:</b> ${u} <b>[${s}]</b>`;
     sendTelegramHTML(message);
 }
 
@@ -223,7 +231,7 @@ function MultisendMessage(
   // Compose message
   const lines = [];
   lines.push('---------------------------------------------------');
-  lines.push(`#MULTICHECKER #${String(chainConfig.Nama_Chain||'').toUpperCase()}`);
+  lines.push(`#MULTISCANNER #${String(chainConfig.Nama_Chain||'').toUpperCase()}`);
   lines.push(`#INFO_USER : #${String(nickname||'').trim()||'-'}`);
   lines.push('---------------------------------------------------');
   lines.push(`<b>PROSES :</b> ${procLeft} => ${procRight}`);
