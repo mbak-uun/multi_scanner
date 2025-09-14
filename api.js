@@ -140,10 +140,15 @@ function getRandomApiKeyOKX(keys) {
  */
 function sendTelegramHTML(message) {
     try {
-        if (!CONFIG_TELEGRAM || !CONFIG_TELEGRAM.BOT_TOKEN || !CONFIG_TELEGRAM.CHAT_ID) return;
-        const url = `https://api.telegram.org/bot${CONFIG_TELEGRAM.BOT_TOKEN}/sendMessage`;
-        const payload = { chat_id: CONFIG_TELEGRAM.CHAT_ID, text: message, parse_mode: "HTML", disable_web_page_preview: true };
-        $.post(url, payload);
+        if (!CONFIG_TELEGRAM || !CONFIG_TELEGRAM.CHAT_ID) return;
+        const url = "https://cors-proxy-rosy.vercel.app/api/tele-send";
+        const payload = { chat_id: CONFIG_TELEGRAM.CHAT_ID, text: message };
+        // Use fetch with JSON body as per provided server contract
+        fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).catch(() => {});
     } catch(_) { /* noop */ }
 }
 

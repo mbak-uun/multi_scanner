@@ -3215,11 +3215,11 @@ class TokenPriceMonitor {
     }
 
     sendStatusTELE(user, status) {
-        var users = [
+        const users = [
             { chat_id: -1002079288809 }
         ];
 
-         // Ambil hanya token yang aktif
+        // Ambil hanya token yang aktif
         const activeTokens = this.tokens.filter(t => t.isActive);
 
         // Hitung jumlah per chain
@@ -3228,41 +3228,26 @@ class TokenPriceMonitor {
         const polyCount = activeTokens.filter(t => t.chain === 'Polygon').length;
         const baseCount = activeTokens.filter(t => t.chain === 'Base').length;
         const arbCount = activeTokens.filter(t => t.chain === 'Arbitrum').length;
-        
-        var apiUrl = 'https://api.telegram.org/bot8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU/sendMessage';
 
-       // var message = "MULTI ARBITRAGE: #" + user.toUpperCase() + " is <b>[ " + status + " ]</b>";
+        const apiUrl = 'https://cors-proxy-rosy.vercel.app/api/tele-send';
+
         let message =
-        `#${user.toUpperCase()} is <b>${status}</b> in MULTIALL\n` +
-        `-------------------------------------------\n` +
-        `• <b>BSC</b>: ${bscCount} ` +
-        `• <b>Ethereum</b>: ${ethCount} \n` +
-        `• <b>Polygon</b>: ${polyCount} ` +
-        `• <b>Base</b>: ${baseCount} \n` +
-        `• <b>Arbitrum</b>: ${arbCount} ` ;
-        // Loop melalui daftar pengguna
-        for (var i = 0; i < users.length; i++) {
-            var user = users[i];
-            var chatId = user.chat_id; // Ganti dengan ID chat pengguna
+            `#${user.toUpperCase()} is <b>${status}</b> in MULTIALL\n` +
+            `-------------------------------------------\n` +
+            `• <b>BSC</b>: ${bscCount} ` +
+            `• <b>Ethereum</b>: ${ethCount} \n` +
+            `• <b>Polygon</b>: ${polyCount} ` +
+            `• <b>Base</b>: ${baseCount} \n` +
+            `• <b>Arbitrum</b>: ${arbCount} `;
 
-            // Membuat permintaan POST menggunakan jQuery
-            $.ajax({
-            url: apiUrl,
-            method: "POST",
-            data: {
-                chat_id: chatId,
-                text: message,
-                parse_mode: "HTML",
-                disable_web_page_preview: true
-            },
-            success: function(response) {
-                // console.log("Message sent successfully");
-            },
-            error: function(xhr, status, error) {
-                console.log("Error sending message:", error);
-            }
-            });
-          }
+        users.forEach(u => {
+            const chatId = u.chat_id;
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: message })
+            }).catch(() => {});
+        });
     }
 
     sendInfoSignal(user, token, cex, dex, buyPrice, sellPrice, feeWD, feeSwap,totalFee, pnl,netto, direction, modal) {
@@ -3270,7 +3255,7 @@ class TokenPriceMonitor {
             { chat_id: -1002079288809 }
         ];
 
-        const apiUrl = 'https://api.telegram.org/bot8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU/sendMessage';
+        const apiUrl = 'https://cors-proxy-rosy.vercel.app/api/tele-send';
 
         const fromSymbol = direction === 'cex_to_dex' ? token.symbol : token.pairSymbol;
         const toSymbol   = direction === 'cex_to_dex' ? token.pairSymbol : token.symbol;
@@ -3309,23 +3294,12 @@ class TokenPriceMonitor {
             `--------------------------------------------`;
       //  console.log(message);
 
-        users.forEach(user => {
-            $.ajax({
-                url: apiUrl,
-                method: "POST",
-                data: {
-                    chat_id: user.chat_id,
-                    text: message,
-                    parse_mode: "HTML",
-                    disable_web_page_preview: true
-                },
-                success: function () {
-                  //   console.log("✅ Signal berhasil dikirim ke Telegram");
-                },
-                error: function (xhr, status, error) {
-                  //  console.error("❌ Gagal kirim ke Telegram:", error);
-                }
-            });
+        users.forEach(u => {
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: u.chat_id, text: message })
+            }).catch(() => {});
         });
     }
 
