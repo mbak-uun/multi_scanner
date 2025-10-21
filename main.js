@@ -3867,13 +3867,24 @@ $(document).ready(function() {
         const selectedPairForSave = selectedPair ? String(selectedPair).toUpperCase() : 'USDT';
 
         const savedLookup = new Map();
+        const savedPairsLookup = new Map(); // Map untuk menyimpan pairs per koin
         (Array.isArray(savedTokens) ? savedTokens : []).forEach(s => {
             const symIn = String(s.symbol_in || '').toUpperCase();
+            const symOut = String(s.symbol_out || '').toUpperCase();
             if (!symIn) return;
             const cexesRaw = Array.isArray(s.selectedCexs) && s.selectedCexs.length ? s.selectedCexs : [s.cex];
             (cexesRaw || []).filter(Boolean).forEach(cx => {
                 const cexUp = String(cx).toUpperCase();
                 savedLookup.set(`${cexUp}__${symIn}`, s);
+
+                // Kumpulkan pairs untuk koin ini
+                const pairKey = `${cexUp}__${symIn}`;
+                if (!savedPairsLookup.has(pairKey)) {
+                    savedPairsLookup.set(pairKey, new Set());
+                }
+                if (symOut) {
+                    savedPairsLookup.get(pairKey).add(symOut);
+                }
             });
         });
 
@@ -4041,13 +4052,42 @@ $(document).ready(function() {
             const duplicateStyle = token.__hasDuplicateSC ? ' style="color: #f0506e; font-weight: bold;"' : '';
             const duplicateWarning = token.__hasDuplicateSC ? '⚠️ ' : '';
 
+            // Ambil pairs yang tersimpan untuk koin ini, kelompokkan sesuai PAIRDEXS
+            const pairKey = `${cexUp}__${symIn}`;
+            const savedPairs = savedPairsLookup.get(pairKey);
+            let pairsDisplay = '';
+            if (savedPairs && savedPairs.size > 0) {
+                // Get main pairs dari PAIRDEXS config
+                const mainPairs = Object.keys(pairDefs || {}).map(p => p.toUpperCase());
+                const displayPairs = [];
+                let hasNonPairs = false;
+
+                // Separate main pairs dan other pairs
+                savedPairs.forEach(pair => {
+                    if (mainPairs.includes(pair)) {
+                        displayPairs.push(pair);
+                    } else {
+                        hasNonPairs = true;
+                    }
+                });
+
+                // Jika ada pairs selain main pairs, tambahkan "NON"
+                if (hasNonPairs) {
+                    displayPairs.push('NON');
+                }
+
+                pairsDisplay = displayPairs.length > 0
+                    ? `<span style="color: #666; font-size: 10px;"><br/>[${displayPairs.join(',')}]</span>`
+                    : '';
+            }
+
             const row = `
                 <tr>
                     <td class="uk-text-center">${checkboxHtml}</td>
                     <td class="uk-text-center">${index + 1}</td>
                     <td class="uk-text-bold uk-text-primary uk-text-small">${cexUp}${statusBadge}${sourceBadge}</td>
                     <td${duplicateStyle}>
-                        <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${duplicateWarning}${symIn}</span>
+                        <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${duplicateWarning}<strong>${symIn}</strong>${pairsDisplay}</span>
                     </td>
                     <td class="uk-text-small mono" title="${scIn || '-'}"${duplicateStyle}>${scDisplay}</td>
                     <td class="uk-text-center">${desIn}</td>
