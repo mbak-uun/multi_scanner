@@ -4039,7 +4039,7 @@ $(document).ready(function() {
 
             // Style untuk koin dengan SC berbeda (warna merah)
             const duplicateStyle = token.__hasDuplicateSC ? ' style="color: #f0506e; font-weight: bold;"' : '';
-            const duplicateWarning = token.__hasDuplicateSC ? ' ⚠️' : '';
+            const duplicateWarning = token.__hasDuplicateSC ? '⚠️ ' : '';
 
             const row = `
                 <tr>
@@ -4047,7 +4047,7 @@ $(document).ready(function() {
                     <td class="uk-text-center">${index + 1}</td>
                     <td class="uk-text-bold uk-text-primary uk-text-small">${cexUp}${statusBadge}${sourceBadge}</td>
                     <td${duplicateStyle}>
-                        <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${symIn}${duplicateWarning}</span>
+                        <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${duplicateWarning}${symIn}</span>
                     </td>
                     <td class="uk-text-small mono" title="${scIn || '-'}"${duplicateStyle}>${scDisplay}</td>
                     <td class="uk-text-center">${desIn}</td>
