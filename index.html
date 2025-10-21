@@ -83,7 +83,7 @@
                 <!-- KOLOM KIRI: semua kontrol kecuali Search -->
                 <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
                 <span class=" uk-text-bolder">SCANNER : </span>
-                <label class="uk-margin-small-left" style="display:none">
+                <label class="uk-margin-small-left">
                     <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
                     <span class="uk-text-success">Auto Run</span>
                 </label>
@@ -132,8 +132,8 @@
                         <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
                         <span class="uk-text-warning uk-margin-small-left">Auto Scroll</span>
                         </label>&nbsp;&nbsp;
-                        <input class="uk-checkbox" type="checkbox" id="toggleScanLog" style="display:none">
-                        <span class="uk-margin-small-left" style="display:none">Log</span>
+                        <input class="uk-checkbox" type="checkbox" id="toggleScanLog">
+                        <span class="uk-margin-small-left">Log</span>
                         <div class="uk-margin-small-left">
                         <input type="text" id="searchInput"
                                 class="uk-input uk-form-small uk-form-primary uk-form-width-small"
@@ -697,7 +697,9 @@
       
         <span>Memilih : &nbsp;
           <label class="uk-margin-small-right"><input type="radio" name="sync-pick-mode" value="all" class="uk-radio"> Semua</label>
-          <label><input type="radio" name="sync-pick-mode" value="clear" class="uk-radio"> Hapus</label>
+          <label class="uk-margin-small-right"><input type="radio" name="sync-pick-mode" value="clear" class="uk-radio"> Hapus</label>
+          <label class="uk-margin-small-right"><input type="radio" name="sync-pick-mode" value="snapshot" class="uk-radio"> Snapshot</label>
+          <label><input type="radio" name="sync-pick-mode" value="selected" class="uk-radio"> Dipilih</label>
         </span>
       </div>
 
