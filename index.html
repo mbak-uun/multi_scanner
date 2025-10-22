@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MULTISCANNER</title>
+    <title>MULTIALL-PLUS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/js/uikit.min.js"></script>
@@ -83,7 +83,7 @@
                 <!-- KOLOM KIRI: semua kontrol kecuali Search -->
                 <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap">
                 <span class=" uk-text-bolder">SCANNER : </span>
-                <label class="uk-margin-small-left" style="display:none;">
+                <label class="uk-margin-small-left">
                     <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
                     <span class="uk-text-success">Auto Run</span>
                 </label>
@@ -836,6 +836,7 @@
 
 <script src="storage.js"></script>
 <script src="services/cex/registry.js"></script>
+<script src="rpc-manager.js"></script><!-- RPC MANAGEMENT WITH FALLBACK SUPPORT -->
 <script src="utils.js"></script>
 <script src="services/cex.js"></script>
 <script src="services/dex.js"></script>
