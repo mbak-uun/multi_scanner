@@ -15,7 +15,7 @@
 
     // Default RPC values (only used for initial setup, not as fallback)
     const INITIAL_RPC_VALUES = {
-        bsc: 'https://public-bsc-mainnet.fastnode.io',
+        bsc: 'https://binance.llamarpc.com',
         polygon: 'https://polygon-pokt.nodies.app',
         ethereum: 'https://eth.llamarpc.com',
         arbitrum: 'https://arbitrum-one-rpc.publicnode.com',
