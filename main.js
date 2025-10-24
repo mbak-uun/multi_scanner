@@ -2852,7 +2852,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
         // Reset modal state
         $('#sync-modal-chain-name').text(chainConfig.Nama_Chain || String(activeSingleChainKey).toUpperCase());
         $('#sync-snapshot-chain-label').text(chainConfig.Nama_Chain || String(activeSingleChainKey).toUpperCase());
-        $('#sync-modal-tbody').empty().html('<tr><td colspan="8">Memuat Data Koin...</td></tr>');
+        $('#sync-modal-tbody').empty().html('<tr><td colspan="6">Memuat Data Koin...</td></tr>');
         $('#sync-snapshot-status').text('Memeriksa database...');
         setSyncSourceIndicator('-');
 
@@ -2883,7 +2883,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
             // console.log('Fetched tokens:', rawTokens.length);
 
             if (!rawTokens || !rawTokens.length) {
-                $('#sync-modal-tbody').html('<tr><td colspan="8">Tidak ada data token dari server</td></tr>');
+                $('#sync-modal-tbody').html('<tr><td colspan="6">Tidak ada data token dari server</td></tr>');
                 $('#sync-snapshot-status').text('Gagal: Data kosong');
                 return;
             }
@@ -2904,11 +2904,11 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                 }
             } else {
                 // console.error('Failed to load after save');
-                $('#sync-modal-tbody').html('<tr><td colspan="8">Gagal memuat data setelah save</td></tr>');
+                $('#sync-modal-tbody').html('<tr><td colspan="6">Gagal memuat data setelah save</td></tr>');
             }
         } catch(error) {
             // console.error('Fetch JSON failed:', error);
-            $('#sync-modal-tbody').html(`<tr><td colspan="8">Gagal mengambil data dari server: ${error.message}</td></tr>`);
+            $('#sync-modal-tbody').html(`<tr><td colspan="6">Gagal mengambil data dari server: ${error.message}</td></tr>`);
             $('#sync-snapshot-status').text('Gagal fetch');
             if (typeof toast !== 'undefined' && toast.error) {
                 toast.error(`Gagal: ${error.message || 'Unknown error'}`);
@@ -2984,7 +2984,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
         const renderIncrementalRows = () => {
             $tbody.empty();
             if (!incrementalOrder.length) {
-                $tbody.html('<tr><td colspan="8" class="uk-text-center uk-text-meta">Memuat data koin terbaru...</td></tr>');
+                $tbody.html('<tr><td colspan="6" class="uk-text-center uk-text-meta">Memuat data koin terbaru...</td></tr>');
                 return;
             }
             incrementalOrder.forEach((key, idx) => {
@@ -2995,19 +2995,10 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                 const tokenName = token.token_name || token.name || token.symbol_in || '-';
                 const scRaw = String(token.sc_in || token.contract_in || '').trim();
                 const scDisplay = scRaw ? (scRaw.length > 12 ? `${scRaw.slice(0, 6)}...${scRaw.slice(-4)}` : scRaw) : '?';
-                const desRaw = token.des_in ?? token.decimals ?? token.decimals_in;
-                const decimals = (Number.isFinite(desRaw) && desRaw >= 0) ? desRaw : '?';
-                // Status trade (tradeable) dengan badge ON/OFF
-                const tradeableState = parseSnapshotStatus(token.tradeable);
-                let tradeBadge = '';
 
-                if (tradeableState === true) {
-                    tradeBadge = '<span class="uk-label uk-label-success" style="font-size:10px; padding:3px 8px;">ON</span>';
-                } else if (tradeableState === false) {
-                    tradeBadge = '<span class="uk-label uk-label-danger" style="font-size:10px; padding:3px 8px;">OFF</span>';
-                } else {
-                    tradeBadge = '<span class="uk-label" style="font-size:10px; padding:3px 8px; background:#666; color:#fff;">?</span>';
-                }
+                // ========== KOLOM DECIMALS DAN TRADE DIHAPUS ==========
+                // Tidak ditampilkan di tabel incremental snapshot
+                // =====================================================
 
                 // CEX display dengan SNAPSHOT badge
                 const cexDisplay = `<div class="uk-text-bold uk-text-primary">${cex}</div><div style="font-size:9px; color:#faa05a; font-weight:600; margin-top:2px;">SNAPSHOT</div>`;
@@ -3025,8 +3016,6 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                             <div class="uk-text-meta">${tokenName}</div>
                         </td>
                         <td class="uk-text-small mono" title="${scRaw || '?'}">${scDisplay}</td>
-                        <td class="uk-text-center">${decimals}</td>
-                        <td class="uk-text-center" style="padding:8px 12px;">${tradeBadge}</td>
                         <td class="uk-text-right uk-text-small">${priceDisplay}</td>
                     </tr>`;
                 $tbody.append(rowHtml);
@@ -4107,7 +4096,7 @@ $(document).ready(function() {
         const renderId = Date.now();
 
         if (!raw.length || selectedCexs.length === 0) {
-            modalBody.html('<tr><td colspan="8">Pilih minimal 1 CEX untuk menampilkan koin.</td></tr>');
+            modalBody.html('<tr><td colspan="6">Pilih minimal 1 CEX untuk menampilkan koin.</td></tr>');
             updateSyncSelectedCount();
             updateSyncSortIndicators();
             return;
@@ -4169,7 +4158,7 @@ $(document).ready(function() {
         });
 
         if (!filtered.length) {
-            modalBody.html('<tr><td colspan="8">No tokens match filters.</td></tr>');
+            modalBody.html('<tr><td colspan="6">No tokens match filters.</td></tr>');
             updateSyncSelectedCount();
             updateSyncSortIndicators();
             return;
@@ -4276,7 +4265,7 @@ $(document).ready(function() {
             // CEX display dengan status badge di baris baru
             const showSourceBadge = token.__isSnapshot;
             const statusText = saved ? '[DIPILIH]' : (showSourceBadge ? '[SNAPSHOT]' : '');
-            const statusColor = saved ? '#054b31ff' : '#d96c19ff'; // success green / warning orange
+            const statusColor = saved ? '#37f21f' : '#d96c19ff'; // success green / warning orange
 
             // Ambil warna CEX dari CONFIG_CEX
             const cexColor = (CONFIG_CEX && CONFIG_CEX[cexUp]) ? CONFIG_CEX[cexUp].WARNA : '#333';
@@ -4287,21 +4276,13 @@ $(document).ready(function() {
 
             const scIn = String(scInRaw || '');
             const scDisplay = scIn ? (scIn.length > 12 ? `${scIn.slice(0, 6)}...${scIn.slice(-4)}` : scIn) : '?';
-            const decimalsValue = Number(token.des_in);
-            const desIn = Number.isFinite(decimalsValue) && decimalsValue >= 0 ? decimalsValue : '?';
             const tokenName = token.token_name || token.name || symIn || '-';
 
-            // Status trade (tradeable) dengan badge ON/OFF
-            const tradeableState = parseSnapshotStatus(token.tradeable);
-            let tradeBadge = '';
+            // ========== KOLOM DECIMALS DAN TRADE DIHAPUS ==========
+            // Tidak semua CEX memberikan info status trade yang konsisten
+            // Decimals bisa dilihat di detail atau form tambah koin
+            // =====================================================
 
-            if (tradeableState === true) {
-                tradeBadge = '<span class="uk-label uk-label-success" style="font-size:10px; padding:3px 8px;">ON</span>';
-            } else if (tradeableState === false) {
-                tradeBadge = '<span class="uk-label uk-label-danger" style="font-size:10px; padding:3px 8px;">OFF</span>';
-            } else {
-                tradeBadge = '<span class="uk-label" style="font-size:10px; padding:3px 8px; background:#666; color:#fff;">?</span>';
-            }
             // ========== PAIR UNTUK HARGA SELALU USDT ==========
             // Fetch harga SELALU pakai USDT (kecuali INDODAX pakai IDR)
             // Tidak peduli pair apa yang dipilih user untuk save
@@ -4358,11 +4339,7 @@ $(document).ready(function() {
                     <td${duplicateStyle}>
                         <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${duplicateWarning}<strong>${symIn}</strong>${pairsDisplay}</span>
                     </td>
-                    <td class="uk-text-small mono" title="${scIn || '-'}"${duplicateStyle}>${scDisplay}</td>
-                    <td class="uk-text-center">${desIn}</td>
-                    <td class="uk-text-center" style="padding:8px 12px;">
-                        ${tradeBadge}
-                    </td>
+                    <td class="uk-text-small mono" title="${scIn || '-'}"${duplicateStyle}>${scDisplay} [${desInRaw || '-'}]</td>
                     <td class="uk-text-right uk-text-small" data-price-cex="${cexUp}" data-symbol="${symIn}" data-index="${baseIndex}">${priceDisplay}</td>
                 </tr>`;
 
