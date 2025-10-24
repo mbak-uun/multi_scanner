@@ -579,7 +579,7 @@ function bootApp() {
             if (typeof toast !== 'undefined') {
                 if (state === 'MISSING_SETTINGS' && toast.warning) toast.warning('Lengkapi SETTING terlebih dahulu');
                 else if (state === 'MISSING_TOKENS' && toast.warning) toast.warning('Tambah/Import/Sinkronisasi KOIN terlebih dahulu');
-                else if (toast.error) toast.error('LAKUKAN SETTING APLIASI & LENGKAPI DATA KOIN TOKEN');
+                else if (toast.error) toast.error('LAKUKAN SETTING APLIKASI & LENGKAPI DATA KOIN TOKEN');
             }
         }
     }
@@ -1045,9 +1045,16 @@ async function deferredInit() {
             setScanUIGating(true);
         }
     } catch(_) {}
-    // Auto open Token Management when no tokens exist
+    // Auto open Token Management when no tokens exist (but settings are valid)
     (function autoOpenManagerIfNoTokens(){
         try {
+            // FIXED: Only auto-open token management if settings are already complete
+            // If settings are missing, bootApp() already showed the settings section
+            if (!hasValidSettings()) {
+                // Settings missing - do NOT override the settings section
+                return;
+            }
+
             const mode = getAppMode();
             let hasTokens = false;
             if (mode.type === 'single') {
@@ -1198,7 +1205,9 @@ async function deferredInit() {
         const scanPerKoin = $('input[name="koin-group"]:checked').val();
         const speedScan = $('input[name="waktu-tunggu"]:checked').val();
 
-        if (!nickname) return UIkit.notification({message: 'Nickname harus diisi!', status: 'danger'});
+        if (!nickname || nickname.length < 6) return UIkit.notification({message: 'Nickname harus diisi (minimal 6 karakter)!', status: 'danger'});
+        if (!/^[a-zA-Z\s]+$/.test(nickname)) return UIkit.notification({message: 'Nickname hanya boleh berisi huruf dan spasi!', status: 'danger'});
+
         if (!jedaTimeGroup || jedaTimeGroup <= 0) return UIkit.notification({message: 'Jeda / Group harus lebih dari 0!', status: 'danger'});
         if (!jedaKoin || jedaKoin <= 0) return UIkit.notification({message: 'Jeda / Koin harus lebih dari 0!', status: 'danger'});
         if (!walletMeta || !walletMeta.startsWith('0x')) return UIkit.notification({message: 'Wallet Address harus valid!', status: 'danger'});
