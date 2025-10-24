@@ -792,6 +792,12 @@ async function deferredInit() {
             }
             $sum.text(`TOTAL KOIN: ${total}`);
             $right.append($sum);
+
+            // Add search input to the right of TOTAL KOIN badge (preserve existing value if any)
+            const existingSearchValue = $('#searchInput').val() || '';
+            const $searchInput = $(`<input id="searchInput" class="uk-input uk-form-small" type="text" placeholder="Cari koin..." style="width:160px;" value="${String(existingSearchValue).replace(/"/g, '&quot;')}">`);
+            $right.append($searchInput);
+
             $wrap.append($right);
             $wrap.off('change.multif').on('change.multif','label.fc-chain input, label.fc-cex input, label.fc-dex input',function(){
                 const prev = getFilterMulti();
@@ -822,8 +828,7 @@ async function deferredInit() {
                 const msg = parts.length ? parts.join(' | ') : `Filter MULTI diperbarui: CHAIN=${chains.length}, CEX=${cex.length}`;
                 try { if (typeof toast !== 'undefined' && toast.info) toast.info(msg); } catch(_){ }
 
-                // Clear both monitoring and management search boxes after filter change
-                try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
+                // searchInput in filter card is now used for both monitoring and management tables
                 // Also clear any existing signal cards produced by a previous scan
                 try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch(_) {}
                 refreshTokensTable();
@@ -889,6 +894,12 @@ async function deferredInit() {
             }
             $sum.text(`TOTAL KOIN: ${totalSingle}`);
             $right.append($sum);
+
+            // Add search input to the right of TOTAL KOIN badge (preserve existing value if any)
+            const existingSearchValue = $('#searchInput').val() || '';
+            const $searchInput = $(`<input id="searchInput" class="uk-input uk-form-small" type="text" placeholder="Cari koin..." style="width:160px;" value="${String(existingSearchValue).replace(/"/g, '&quot;')}">`);
+            $right.append($searchInput);
+
             $wrap.append($right);
             $wrap.off('change.scf').on('change.scf','label.sc-cex input, label.sc-pair input, label.sc-dex input',function(){
                 const prev = getFilterChain(chain);
@@ -918,8 +929,7 @@ async function deferredInit() {
                 const label = String(chain).toUpperCase();
                 const msg = parts.length ? `[${label}] ${parts.join(' | ')}` : `[${label}] Filter diperbarui: CEX=${c.length}, PAIR=${p.length}`;
                 try { if (typeof toast !== 'undefined' && toast.info) toast.info(msg); } catch(_){ }
-                // Clear both monitoring and management search boxes after filter change
-                try { $('#searchInput').val(''); $('#mgrSearchInput').val(''); } catch(_){}
+                // searchInput in filter card is now used for both monitoring and management tables
                 // Also clear any existing signal cards produced by a previous scan
                 try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch(_) {}
                 loadAndDisplaySingleChainTokens();
@@ -1342,7 +1352,8 @@ $("#reload").click(function () {
     });
 
     // Global search (in filter card) updates both monitoring and management views
-    $('#searchInput').on('input', debounce(function() {
+    // Use event delegation since #searchInput is created dynamically
+    $(document).on('input', '#searchInput', debounce(function() {
         // Filter monitoring table rows (multi and single chain)
         const searchValue = ($(this).val() || '').toLowerCase();
         const filterTable = (tbodyId) => {
@@ -1385,11 +1396,6 @@ $("#reload").click(function () {
         } catch(_) {}
 
         // Re-render token management list to apply same query
-        try { renderTokenManagementList(); } catch(_) {}
-    }, 250));
-
-    // Management search input (visible only on Token Management view)
-    $(document).on('input', '#mgrSearchInput', debounce(function(){
         try { renderTokenManagementList(); } catch(_) {}
     }, 250));
 
@@ -3952,14 +3958,15 @@ $(document).ready(function() {
         const chain = (CONFIG_CHAINS || {})[chainKey] || {};
         const pairDefs = chain.PAIRDEXS || {};
 
-        // Build CEX checkboxes (horizontal chips) - unchecked by default
+        // Build CEX checkboxes (horizontal chips) - auto-check CEX yang ada data
         const $cex = $('#sync-filter-cex').empty();
         Object.keys(CONFIG_CEX || {}).forEach(cex => {
             const id = `sync-cex-${cex}`;
            const badge = countByCex[cex] || 0;
-           // No auto-check - user must select manually
+           // Auto-check CEX yang memiliki data (badge > 0)
+           const checked = badge > 0 ? 'checked' : '';
            $cex.append(`<label class="uk-text-small" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #e5e5e5; border-radius:6px; background:#fafafa;">
-                <input type="checkbox" id="${id}" value="${cex}" class="uk-checkbox">
+                <input type="checkbox" id="${id}" value="${cex}" class="uk-checkbox" ${checked}>
                 <span style="color:${CONFIG_CEX[cex].WARNA||'#333'}; font-weight:bolder;">${cex}</span>
                 <span class="uk-text-muted">(${badge})</span>
             </label>`);
@@ -3968,7 +3975,7 @@ $(document).ready(function() {
         // ========== REFACTOR: PAIR RADIO BUTTONS (TANPA COUNTER) ==========
         // Pair adalah INPUT untuk konfigurasi save, BUKAN filter tampilan
         // Jadi TIDAK perlu counter/badge
-        // Pair DISABLED sampai user centang minimal 1 koin (sama seperti DEX)
+        // PAIR ENABLED by default (user bisa pilih pair kapan saja setelah data dimuat)
         const $pair = $('#sync-filter-pair').empty();
         const pairKeys = Array.from(new Set([...Object.keys(pairDefs||{}), 'NON']));
         // Default: USDT jika ada, kalau tidak pakai pair pertama
@@ -3976,10 +3983,10 @@ $(document).ready(function() {
         pairKeys.forEach(p => {
             const id = `sync-pair-${p}`;
             const checked = (p === defaultPair) ? 'checked' : '';
-            // TANPA badge/counter karena pair bukan filter
-            // DISABLED by default (akan enabled di updateSyncSelectedCount saat ada koin dipilih)
-            $pair.append(`<label class="uk-text-small" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #e5e5e5; border-radius:6px; background:#fafafa; opacity:0.5; pointer-events:none; cursor:not-allowed;">
-                <input type="radio" name="sync-pair-group" id="${id}" value="${p}" class="uk-radio" ${checked} disabled>
+            // ENABLED by default - user bisa pilih pair setelah data dimuat
+            // Akan disabled hanya jika tidak ada koin yang tercentang (diatur oleh updateSyncSelectedCount)
+            $pair.append(`<label class="uk-text-small" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #e5e5e5; border-radius:6px; background:#fafafa;">
+                <input type="radio" name="sync-pair-group" id="${id}" value="${p}" class="uk-radio" ${checked}>
                 <span style="font-weight:bolder;">${p}</span>
             </label>`);
         });
