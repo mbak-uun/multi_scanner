@@ -334,10 +334,23 @@ function refreshTokensTable() {
 
     filteredTokens = [...filteredByChain];
     originalTokens = [...filteredByChain];
-    loadKointoTable(filteredTokens, 'dataTableBody');
-    try { window.currentListOrderMulti = Array.isArray(filteredTokens) ? [...filteredTokens] : []; } catch(_) {}
-    try { applySortToggleState(); } catch(_) {}
-    attachEditButtonListeners(); // Re-attach listeners after table render
+
+    // ========== OPTIMIZED: DEFER TABLE RENDERING ==========
+    // Use requestIdleCallback or setTimeout for better responsiveness
+    const renderTable = () => {
+        loadKointoTable(filteredTokens, 'dataTableBody');
+        try { window.currentListOrderMulti = Array.isArray(filteredTokens) ? [...filteredTokens] : []; } catch(_) {}
+        try { applySortToggleState(); } catch(_) {}
+        attachEditButtonListeners(); // Re-attach listeners after table render
+    };
+
+    // Defer rendering to allow UI thread to breathe
+    if (window.requestIdleCallback) {
+        window.requestIdleCallback(renderTable, { timeout: 100 });
+    } else {
+        setTimeout(renderTable, 0);
+    }
+    // =====================================================
 }
 
 /**
@@ -380,9 +393,22 @@ function loadAndDisplaySingleChainTokens() {
 
     // Expose current list for search-aware scanning (keep sorted order)
     try { window.singleChainTokensCurrent = Array.isArray(flatTokens) ? [...flatTokens] : []; } catch(_){}
-    loadKointoTable(flatTokens, 'dataTableBody');
-    try { applySortToggleState(); } catch(_) {}
-    attachEditButtonListeners(); // Re-attach listeners after table render
+
+    // ========== OPTIMIZED: DEFER TABLE RENDERING ==========
+    // Use requestIdleCallback or setTimeout for better responsiveness
+    const renderTable = () => {
+        loadKointoTable(flatTokens, 'dataTableBody');
+        try { applySortToggleState(); } catch(_) {}
+        attachEditButtonListeners(); // Re-attach listeners after table render
+    };
+
+    // Defer rendering to allow UI thread to breathe
+    if (window.requestIdleCallback) {
+        window.requestIdleCallback(renderTable, { timeout: 100 });
+    } else {
+        setTimeout(renderTable, 0);
+    }
+    // =====================================================
 }
 
 
@@ -1687,6 +1713,20 @@ $("#startSCAN").click(function () {
         const id = $('#multiTokenIndex').val();
         if (!id) return (typeof toast !== 'undefined' && toast.error) ? toast.error('ID token tidak ditemukan.') : undefined;
 
+        // ========== LOADING INDICATOR ==========
+        const $saveBtn = $('#SaveEditkoin');
+        const originalBtnHtml = $saveBtn.html();
+        $saveBtn.prop('disabled', true).html('<span uk-spinner="ratio: 0.6"></span> Menyimpan...');
+
+        // Show overlay for visual feedback
+        let overlayId = null;
+        try {
+            if (window.AppOverlay) {
+                overlayId = window.AppOverlay.show('Memperbarui data koin...');
+            }
+        } catch(_) {}
+        // ======================================
+
         const updatedToken = {
             id,
             symbol_in: ($('#inputSymbolToken').val() || '').trim(),
@@ -1701,8 +1741,12 @@ $("#startSCAN").click(function () {
             ...readDexSelectionFromForm()
         };
 
-        if (!updatedToken.symbol_in || !updatedToken.symbol_out) return (typeof toast !== 'undefined' && toast.warning) ? toast.warning('Symbol Token & Pair tidak boleh kosong') : undefined;
-        // Removed 4-DEX selection cap: allow any number of DEX
+        if (!updatedToken.symbol_in || !updatedToken.symbol_out) {
+            // Restore button state
+            $saveBtn.prop('disabled', false).html(originalBtnHtml);
+            if (overlayId && window.AppOverlay) window.AppOverlay.hide(overlayId);
+            return (typeof toast !== 'undefined' && toast.warning) ? toast.warning('Symbol Token & Pair tidak boleh kosong') : undefined;
+        }
 
         const m = getAppMode();
         let tokens = (m.type === 'single') ? getTokensChain(m.chain) : getTokensMulti();
@@ -1725,20 +1769,52 @@ $("#startSCAN").click(function () {
         }
 
         if (m.type === 'single') setTokensChain(m.chain, tokens); else setTokensMulti(tokens);
-        if (typeof toast !== 'undefined' && toast.success) toast.success(idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan');
-        // Refresh both monitoring and management views according to mode
-        try {
-            if (m.type === 'single') { loadAndDisplaySingleChainTokens(); }
-            else { refreshTokensTable(); }
-            if (typeof renderFilterCard === 'function') renderFilterCard();
-            renderTokenManagementList();
-        } catch(_) {}
-        try {
-            const action = (idx !== -1) ? 'UBAH KOIN' : 'TAMBAH KOIN';
-            const chainLbl = String(updatedToken.chain || (m.type==='single'? m.chain : 'all')).toUpperCase();
-            setLastAction(`${action}`);
-        } catch(_) { setLastAction('UBAH KOIN'); }
-        if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
+
+        // ========== OPTIMIZED DEBOUNCED REFRESH ==========
+        // Use setTimeout to allow UI to update smoothly
+        // Batch all refresh operations together to avoid multiple reflows
+        setTimeout(() => {
+            try {
+                if (typeof toast !== 'undefined' && toast.success) {
+                    toast.success(idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan');
+                }
+
+                // Batch DOM updates using requestAnimationFrame for better performance
+                requestAnimationFrame(() => {
+                    try {
+                        if (m.type === 'single') {
+                            loadAndDisplaySingleChainTokens();
+                        } else {
+                            refreshTokensTable();
+                        }
+                        if (typeof renderFilterCard === 'function') renderFilterCard();
+                        renderTokenManagementList();
+                    } catch(e) {
+                        console.error('[Update Token] Refresh error:', e);
+                    } finally {
+                        // Restore button state
+                        $saveBtn.prop('disabled', false).html(originalBtnHtml);
+
+                        // Hide overlay
+                        if (overlayId && window.AppOverlay) {
+                            window.AppOverlay.hide(overlayId);
+                        }
+                    }
+                });
+
+                try {
+                    const action = (idx !== -1) ? 'UBAH KOIN' : 'TAMBAH KOIN';
+                    setLastAction(`${action}`);
+                } catch(_) { setLastAction('UBAH KOIN'); }
+
+                if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
+            } catch(e) {
+                console.error('[Update Token] Error:', e);
+                $saveBtn.prop('disabled', false).html(originalBtnHtml);
+                if (overlayId && window.AppOverlay) window.AppOverlay.hide(overlayId);
+            }
+        }, 50); // Small delay for smooth UI transition
+        // ================================================
     });
 
     $(document).on('click', '#HapusEditkoin', function (e) {
@@ -2384,10 +2460,13 @@ function updateSyncSelectedCount() {
 try { window.updateSyncSelectedCount = updateSyncSelectedCount; } catch(_) {}
 
 const SYNC_PRICE_CACHE_TTL = 60000; // 60 detik
+try { window.SYNC_PRICE_CACHE_TTL = SYNC_PRICE_CACHE_TTL; } catch(_) {}
+
 function getSyncPriceCache() {
     if (!window.__SYNC_PRICE_CACHE) window.__SYNC_PRICE_CACHE = new Map();
     return window.__SYNC_PRICE_CACHE;
 }
+try { window.getSyncPriceCache = getSyncPriceCache; } catch(_) {}
 
 function formatSyncPriceValue(price, currency) {
     if (!Number.isFinite(price) || price <= 0) return '-';
@@ -2456,6 +2535,7 @@ function proxSync(url) {
 
 const SYNC_TICKER_CACHE_TTL = 60000;
 const SYNC_TICKER_CACHE = new Map();
+const SYNC_TICKER_PENDING = new Map(); // Track pending requests to prevent duplicate fetches
 
 const SYNC_TICKER_ENDPOINTS = {
     BINANCE: {
@@ -2619,18 +2699,44 @@ const SYNC_TICKER_ENDPOINTS = {
 
 async function fetchTickerMapForCex(cex) {
     const key = String(cex || '').toUpperCase();
+
+    // Check cache first
     const cached = SYNC_TICKER_CACHE.get(key);
     const now = Date.now();
     if (cached && (now - cached.ts) < SYNC_TICKER_CACHE_TTL) {
         return cached.map;
     }
+
+    // ========== REQUEST DEDUPLICATION ==========
+    // If there's already a pending request for this CEX, wait for it instead of making a new request
+    if (SYNC_TICKER_PENDING.has(key)) {
+        console.log(`[fetchTickerMapForCex] Waiting for pending ${key} request...`);
+        return await SYNC_TICKER_PENDING.get(key);
+    }
+
+    // Create new request promise
     const endpoint = SYNC_TICKER_ENDPOINTS[key];
     if (!endpoint) throw new Error(`Ticker endpoint untuk ${key} tidak tersedia`);
-    const targetUrl = endpoint.proxy ? proxSync(endpoint.url) : endpoint.url;
-    const resp = await $.getJSON(targetUrl);
-    const map = endpoint.parser(resp) || new Map();
-    SYNC_TICKER_CACHE.set(key, { map, ts: now });
-    return map;
+
+    const fetchPromise = (async () => {
+        try {
+            console.log(`[fetchTickerMapForCex] Fetching ${key} ticker data...`);
+            const targetUrl = endpoint.proxy ? proxSync(endpoint.url) : endpoint.url;
+            const resp = await $.getJSON(targetUrl);
+            const map = endpoint.parser(resp) || new Map();
+            SYNC_TICKER_CACHE.set(key, { map, ts: Date.now() });
+            console.log(`[fetchTickerMapForCex] ${key} ticker data cached (${map.size} pairs)`);
+            return map;
+        } finally {
+            // Remove from pending when done (success or error)
+            SYNC_TICKER_PENDING.delete(key);
+        }
+    })();
+
+    // Store the promise so other concurrent calls can reuse it
+    SYNC_TICKER_PENDING.set(key, fetchPromise);
+    return await fetchPromise;
+    // ===========================================
 }
 
 function resolveTickerPriceFromMap(cex, map, base, quote) {
@@ -4322,9 +4428,24 @@ $(document).ready(function() {
 
             const priceStored = Number(token.current_price ?? NaN);
             const priceCurrency = token.price_currency || (cexUp === 'INDODAX' ? 'IDR' : 'USDT');
-            const priceDisplay = (Number.isFinite(priceStored) && priceStored > 0)
-                ? formatSyncPriceValue(priceStored, priceCurrency)
-                : '?';
+
+            // ========== CEK CACHE UNTUK HARGA ==========
+            // Cek cache dulu sebelum render HTML, agar tampilan langsung menggunakan cache
+            const cache = (typeof window.getSyncPriceCache === 'function') ? window.getSyncPriceCache() : new Map();
+            const cacheKey = `${cexUp}__${symIn}__${pairForPrice}`;
+            const cached = cache.get(cacheKey);
+            const now = Date.now();
+            const cacheTTL = window.SYNC_PRICE_CACHE_TTL || 60000;
+            const isCacheValid = cached && (now - cached.ts) < cacheTTL;
+
+            // Priority: 1) Cache valid, 2) Data dari token, 3) '?'
+            let priceDisplay = '?';
+            if (isCacheValid && Number.isFinite(cached.price) && cached.price > 0) {
+                priceDisplay = formatSyncPriceValue(cached.price, priceCurrency);
+            } else if (Number.isFinite(priceStored) && priceStored > 0) {
+                priceDisplay = formatSyncPriceValue(priceStored, priceCurrency);
+            }
+            // ==========================================
 
             // Checkbox: simpan data-cex dan data-symbol (TANPA pair)
             const checkboxHtml = `<input type="checkbox" class="uk-checkbox sync-token-checkbox" data-index="${baseIndex}" data-cex="${cexUp}" data-symbol="${symIn}" ${isChecked ? 'checked' : ''} ${saved ? 'data-saved="1"' : ''}>`;
@@ -4383,12 +4504,14 @@ $(document).ready(function() {
                 symIn,
                 baseIndex,
                 eligibleForPrice,
-                priceDisplay,
+                priceDisplay: priceDisplay,
                 renderId
             });
 
+            // ========== HANYA BUAT PRICE JOB JIKA CACHE TIDAK VALID ==========
+            // Cache sudah dicek di atas (line 4326-4341), jika valid tidak perlu fetch lagi
             const jobKey = `${cexUp}__${symIn}__${pairForPrice}`;
-            if (eligibleForPrice && !priceJobKeys.has(jobKey)) {
+            if (eligibleForPrice && !priceJobKeys.has(jobKey) && !isCacheValid) {
                 priceJobKeys.add(jobKey);
                 priceJobs.push({
                     cex: cexUp,
@@ -4400,6 +4523,7 @@ $(document).ready(function() {
                     renderId
                 });
             }
+            // =================================================================
         });
 
         // Insert semua rows sekaligus (1× reflow, bukan 1000× reflow)
