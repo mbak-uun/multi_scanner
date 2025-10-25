@@ -2,7 +2,7 @@
 const CONFIG_APP = {
     APP: {
         NAME: "MULTISCANNER",
-        VERSION: "3.3",
+        VERSION: "3.7",
         SCAN_LIMIT:true
     }
 };
