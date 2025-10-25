@@ -549,9 +549,13 @@ function bootApp() {
     // REFACTORED
     if (typeof applyThemeForMode === 'function') applyThemeForMode();
     applyControlsFor(state);
-    // Show settings section automatically if settings are missing (including MISSING_BOTH)
+
+    // Show settings section automatically if settings are missing OR if nickname is invalid
+    const appSettings = getFromLocalStorage('SETTING_SCANNER', {});
     const settingsMissing = !hasValidSettings();
-    if (settingsMissing) {
+    const nicknameInvalid = !appSettings.nickname || String(appSettings.nickname).trim().length < 6;
+
+    if (settingsMissing || nicknameInvalid) {
         // Populate settings form when auto-shown and ensure it's enabled
         // REFACTORED
         if (typeof renderSettingsForm === 'function') renderSettingsForm();
@@ -566,7 +570,12 @@ function bootApp() {
         if ($('#dataTableBody').length) { $('#dataTableBody').closest('.uk-overflow-auto').hide(); }
         if ($('#form-setting-app').length && $('#form-setting-app')[0] && typeof $('#form-setting-app')[0].scrollIntoView === 'function') {
             $('#form-setting-app')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }       
+        }
+        // Show a specific warning if only the nickname is the issue
+        if (!settingsMissing && nicknameInvalid) {
+            if (typeof toast !== 'undefined' && toast.warning) toast.warning('Nickname harus diisi (minimal 6 karakter)!');
+        }
+
     } else {
     // Show the main scanner view by default if settings are complete
     showMainSection('scanner');
