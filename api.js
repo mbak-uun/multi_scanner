@@ -204,8 +204,10 @@ function sendTelegramHTML(message) {
 }
 
 async function sendStatusTELE(user, status) {
+    const settings = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('SETTING_SCANNER', {}) : {};
+    const walletMeta = settings.walletMeta || 'N/A';
     const ipAddress = await getUserIP();
-    const message = `<b>${APP_HEADER}</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>\n<b>IP ADDRESS:</b> ${ipAddress}`;
+    const message = `<b>${APP_HEADER}</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>\n<b>IP:</b> ${ipAddress}`;
     sendTelegramHTML(message);
 }
 
@@ -307,12 +309,14 @@ async function MultisendMessage(
   const procLeft  = isC2D ? String(cex).toUpperCase() : String(dex).toUpperCase();
   const procRight = isC2D ? String(dex).toUpperCase() : String(cex).toUpperCase();
 
+  const settings = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('SETTING_SCANNER', {}) : {};
+  const walletMeta = settings.walletMeta || 'N/A';
   const ipAddress = await getUserIP();
   // Compose pesan
   const lines = [];
   lines.push('---------------------------------------------------');
   lines.push(`${APP_HEADER} #${String(chainConfig.Nama_Chain||'').toUpperCase()}`);
-  lines.push(`<b>IP ADDRESS:</b> ${ipAddress}`);
+  lines.push(`<b>IP:</b> ${ipAddress}\n<b>WALLET:</b> ${walletMeta}`);
   lines.push(`#USERNAME : #${String(nickname||'').trim()||'-'}`);
   lines.push('---------------------------------------------------');
   lines.push(`<b>PROSES :</b> ${procLeft} => ${procRight}`);
