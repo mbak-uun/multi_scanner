@@ -403,8 +403,30 @@ function computeAppReadiness() {
  * @returns {boolean}
  */
 function hasValidSettings() {
-    const s = getFromLocalStorage(REQUIRED_KEYS.SETTINGS, {});
-    return s && typeof s === 'object' && Object.keys(s).length > 0;
+    try {
+        const s = getFromLocalStorage(REQUIRED_KEYS.SETTINGS, {});
+        if (!s || typeof s !== 'object') return false;
+
+        // Validasi field minimal yang wajib ada
+        const nickname = String(s.nickname || '').trim();
+        const wallet   = String(s.walletMeta || '').trim();
+        const jedaGrp  = Number(s.jedaTimeGroup);
+        const jedaKoin = Number(s.jedaKoin);
+
+        if (!nickname || nickname.length < 6) return false;
+        if (!wallet || !wallet.startsWith('0x')) return false;
+        if (!Number.isFinite(jedaGrp) || jedaGrp <= 0) return false;
+        if (!Number.isFinite(jedaKoin) || jedaKoin <= 0) return false;
+
+        // Pastikan setiap chain memiliki RPC terisi (userRPCs diisi saat simpan setting)
+        const chains = Object.keys(window.CONFIG_CHAINS || {});
+        const userRPCs = (s && typeof s.userRPCs === 'object') ? s.userRPCs : {};
+        if (!chains.every((c) => userRPCs && typeof userRPCs[c] === 'string' && userRPCs[c].trim().length > 0)) {
+            return false;
+        }
+
+        return true;
+    } catch(_) { return false; }
 }
 
 /**
@@ -550,32 +572,32 @@ function bootApp() {
     if (typeof applyThemeForMode === 'function') applyThemeForMode();
     applyControlsFor(state);
 
-    // Show settings section automatically if settings are missing OR if nickname is invalid
     const appSettings = getFromLocalStorage('SETTING_SCANNER', {});
     const settingsMissing = !hasValidSettings();
     const nicknameInvalid = !appSettings.nickname || String(appSettings.nickname).trim().length < 6;
 
-    if (settingsMissing || nicknameInvalid) {
+    if (settingsMissing) {
+        // Jika pengaturan dasar (API keys, dll) tidak ada, paksa buka form setting.
         // Populate settings form when auto-shown and ensure it's enabled
-        // REFACTORED
         if (typeof renderSettingsForm === 'function') renderSettingsForm();
         $('#form-setting-app').show();
         $('#filter-card, #scanner-config, #token-management, #iframe-container').hide();
         try {
-            if (window.SnapshotModule && typeof window.SnapshotModule.hide === 'function') {
-                window.SnapshotModule.hide();
-            }
+            if (window.SnapshotModule?.hide) window.SnapshotModule.hide();
         } catch(_) {}
-        // REFACTORED
         if ($('#dataTableBody').length) { $('#dataTableBody').closest('.uk-overflow-auto').hide(); }
         if ($('#form-setting-app').length && $('#form-setting-app')[0] && typeof $('#form-setting-app')[0].scrollIntoView === 'function') {
             $('#form-setting-app')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        // Show a specific warning if only the nickname is the issue
-        if (!settingsMissing && nicknameInvalid) {
-            if (typeof toast !== 'undefined' && toast.warning) toast.warning('Nickname harus diisi (minimal 6 karakter)!');
-        }
-
+    } else if (nicknameInvalid) {
+        // Jika hanya nickname yang tidak valid, paksa buka halaman Setting agar user segera memperbaiki.
+        if (typeof toast !== 'undefined' && toast.warning) toast.warning('Nickname harus diisi (minimal 6 karakter)! Silakan perbarui di menu Setting.');
+        if (typeof renderSettingsForm === 'function') renderSettingsForm();
+        $('#form-setting-app').show();
+        $('#filter-card, #scanner-config, #token-management, #iframe-container').hide();
+        try { if (window.SnapshotModule?.hide) window.SnapshotModule.hide(); } catch(_) {}
+        if ($('#dataTableBody').length) { $('#dataTableBody').closest('.uk-overflow-auto').hide(); }
+        try { if ($('#form-setting-app')[0] && typeof $('#form-setting-app')[0].scrollIntoView === 'function') { $('#form-setting-app')[0].scrollIntoView({ behavior: 'smooth', block: 'start' }); } } catch(_) {}
     } else {
     // Show the main scanner view by default if settings are complete
     showMainSection('scanner');
