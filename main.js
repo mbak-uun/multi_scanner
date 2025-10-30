@@ -3021,7 +3021,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
         // Reset modal state
         $('#sync-modal-chain-name').text(chainConfig.Nama_Chain || String(activeSingleChainKey).toUpperCase());
         $('#sync-snapshot-chain-label').text(chainConfig.Nama_Chain || String(activeSingleChainKey).toUpperCase());
-        $('#sync-modal-tbody').empty().html('<tr><td colspan="6">Memuat Data Koin...</td></tr>');
+        $('#sync-modal-tbody').empty().html('<tr><td colspan="7">Memuat Data Koin...</td></tr>');
         $('#sync-snapshot-status').text('Memeriksa database...');
         setSyncSourceIndicator('-');
 
@@ -3052,7 +3052,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
             // console.log('Fetched tokens:', rawTokens.length);
 
             if (!rawTokens || !rawTokens.length) {
-                $('#sync-modal-tbody').html('<tr><td colspan="6">Tidak ada data token dari server</td></tr>');
+                $('#sync-modal-tbody').html('<tr><td colspan="7">Tidak ada data token dari server</td></tr>');
                 $('#sync-snapshot-status').text('Gagal: Data kosong');
                 return;
             }
@@ -3073,11 +3073,11 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                 }
             } else {
                 // console.error('Failed to load after save');
-                $('#sync-modal-tbody').html('<tr><td colspan="6">Gagal memuat data setelah save</td></tr>');
+                $('#sync-modal-tbody').html('<tr><td colspan="7">Gagal memuat data setelah save</td></tr>');
             }
         } catch(error) {
             // console.error('Fetch JSON failed:', error);
-            $('#sync-modal-tbody').html(`<tr><td colspan="6">Gagal mengambil data dari server: ${error.message}</td></tr>`);
+            $('#sync-modal-tbody').html(`<tr><td colspan="7">Gagal mengambil data dari server: ${error.message}</td></tr>`);
             $('#sync-snapshot-status').text('Gagal fetch');
             if (typeof toast !== 'undefined' && toast.error) {
                 toast.error(`Gagal: ${error.message || 'Unknown error'}`);
@@ -3165,7 +3165,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
         const renderIncrementalRows = () => {
             $tbody.empty();
             if (!incrementalOrder.length) {
-                $tbody.html('<tr><td colspan="6" class="uk-text-center uk-text-meta">Memuat data koin terbaru...</td></tr>');
+                $tbody.html('<tr><td colspan="7" class="uk-text-center uk-text-meta">Memuat data koin terbaru...</td></tr>');
                 return;
             }
             incrementalOrder.forEach((key, idx) => {
@@ -3176,6 +3176,28 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                 const tokenName = token.token_name || token.name || token.symbol_in || '-';
                 const scRaw = String(token.sc_in || token.contract_in || '').trim();
                 const scDisplay = scRaw ? (scRaw.length > 12 ? `${scRaw.slice(0, 6)}...${scRaw.slice(-4)}` : scRaw) : '?';
+
+                // ========== WALLET STATUS: WITHDRAW & DEPOSIT ==========
+                const depositStatus = parseSnapshotStatus(token.deposit || token.depositEnable);
+                const withdrawStatus = parseSnapshotStatus(token.withdraw || token.withdrawEnable);
+
+                // Format display untuk WITHDRAW status (urutan pertama)
+                const wdStatusText = withdrawStatus === true ? 'ON' : (withdrawStatus === false ? 'OFF' : '?');
+                const wdStatusColor = withdrawStatus === true ? '#4caf50' : (withdrawStatus === false ? '#f44336' : '#999');
+
+                // Format display untuk DEPOSIT status (urutan kedua)
+                const depoStatusText = depositStatus === true ? 'ON' : (depositStatus === false ? 'OFF' : '?');
+                const depoStatusColor = depositStatus === true ? '#4caf50' : (depositStatus === false ? '#f44336' : '#999');
+
+                const tooltipTitle = `Withdraw: ${wdStatusText} | Deposit: ${depoStatusText}`;
+
+                const walletStatusDisplay = `
+                    <div style="display:flex; gap:4px; justify-content:center; font-size:11px; font-weight:bold;" title="${tooltipTitle}">
+                        <span style="color:${wdStatusColor};">${wdStatusText}</span>
+                        <span style="color:#ccc;">|</span>
+                        <span style="color:${depoStatusColor};">${depoStatusText}</span>
+                    </div>`;
+                // =====================================================
 
                 // ========== KOLOM DECIMALS DAN TRADE DIHAPUS ==========
                 // Tidak ditampilkan di tabel incremental snapshot
@@ -3197,6 +3219,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                             <div class="uk-text-meta">${tokenName}</div>
                         </td>
                         <td class="uk-text-small mono" title="${scRaw || '?'}">${scDisplay}</td>
+                        <td class="uk-text-center">${walletStatusDisplay}</td>
                         <td class="uk-text-right uk-text-small">${priceDisplay}</td>
                     </tr>`;
                 $tbody.append(rowHtml);
@@ -3210,17 +3233,24 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
             await snapshotModule.processSnapshotForCex(
                 activeSingleChainKey,
                 selectedCexs,
-                (token) => {
+                (tokenOrArray) => {
                     try {
-                        if (!token) return;
-                        const cex = String(token.cex || token.cex_source || '').toUpperCase();
-                        const symbol = String(token.symbol_in || token.symbol || '').toUpperCase();
-                        const scKey = String(token.sc_in || token.contract_in || '').toLowerCase() || 'NOSC';
-                        const rowKey = `${cex || 'UNKNOWN'}__${symbol || 'UNKNOWN'}__${scKey}`;
-                        if (!incrementalMap.has(rowKey)) {
-                            incrementalOrder.push(rowKey);
-                        }
-                        incrementalMap.set(rowKey, { ...token });
+                        // OPTIMIZED: Handle both array (batch mode) and individual token (backward compat)
+                        const tokens = Array.isArray(tokenOrArray) ? tokenOrArray : [tokenOrArray];
+
+                        tokens.forEach(token => {
+                            if (!token) return;
+                            const cex = String(token.cex || token.cex_source || '').toUpperCase();
+                            const symbol = String(token.symbol_in || token.symbol || '').toUpperCase();
+                            const scKey = String(token.sc_in || token.contract_in || '').toLowerCase() || 'NOSC';
+                            const rowKey = `${cex || 'UNKNOWN'}__${symbol || 'UNKNOWN'}__${scKey}`;
+                            if (!incrementalMap.has(rowKey)) {
+                                incrementalOrder.push(rowKey);
+                            }
+                            incrementalMap.set(rowKey, { ...token });
+                        });
+
+                        // Render SEKALI setelah semua tokens di-process (batch rendering)
                         renderIncrementalRows();
                     } catch(rowErr) {
                         // console.error('Failed to render incremental token row:', rowErr);
@@ -4282,7 +4312,7 @@ $(document).ready(function() {
         const renderId = Date.now();
 
         if (!raw.length || selectedCexs.length === 0) {
-            modalBody.html('<tr><td colspan="6">Pilih minimal 1 CEX untuk menampilkan koin.</td></tr>');
+            modalBody.html('<tr><td colspan="7">Pilih minimal 1 CEX untuk menampilkan koin.</td></tr>');
             updateSyncSelectedCount();
             updateSyncSortIndicators();
             return;
@@ -4355,7 +4385,7 @@ $(document).ready(function() {
         });
 
         if (!filtered.length) {
-            modalBody.html('<tr><td colspan="6">No tokens match filters.</td></tr>');
+            modalBody.html('<tr><td colspan="7">No tokens match filters.</td></tr>');
             updateSyncSelectedCount();
             updateSyncSortIndicators();
             return;
@@ -4475,6 +4505,45 @@ $(document).ready(function() {
             const scDisplay = scIn ? (scIn.length > 12 ? `${scIn.slice(0, 6)}...${scIn.slice(-4)}` : scIn) : '?';
             const tokenName = token.token_name || token.name || symIn || '-';
 
+            // ========== WALLET STATUS: WITHDRAW & DEPOSIT ==========
+            // Parse status deposit dan withdraw dari data token
+            const depositStatus = parseSnapshotStatus(token.deposit || token.depositEnable);
+            const withdrawStatus = parseSnapshotStatus(token.withdraw || token.withdrawEnable);
+
+            // Format display untuk WITHDRAW status (urutan pertama)
+            const wdStatusText = withdrawStatus === true ? 'ON' : (withdrawStatus === false ? 'OFF' : '?');
+            const wdStatusColor = withdrawStatus === true ? '#4caf50' : (withdrawStatus === false ? '#f44336' : '#999');
+
+            // Format display untuk DEPOSIT status (urutan kedua)
+            const depoStatusText = depositStatus === true ? 'ON' : (depositStatus === false ? 'OFF' : '?');
+            const depoStatusColor = depositStatus === true ? '#4caf50' : (depositStatus === false ? '#f44336' : '#999');
+
+            // Build title untuk tooltip - tambahkan info DEX dan Modal jika koin sudah dipilih
+            let tooltipTitle = `Withdraw: ${wdStatusText} | Deposit: ${depoStatusText}`;
+            if (saved) {
+                // Ambil info DEX dan Modal dari saved entry
+                const dexsList = Array.isArray(saved.dexs) ? saved.dexs.map(d => d.dex || '').filter(Boolean) : [];
+                const dexsText = dexsList.length > 0 ? dexsList.join(', ').toUpperCase() : '-';
+
+                // Ambil modal dari setiap DEX
+                const modalsInfo = Array.isArray(saved.dexs) ? saved.dexs.map(d => {
+                    const dexName = (d.dex || '').toUpperCase();
+                    const modalKiri = d.amount_in_token || d.modalKiri || 0;
+                    const modalKanan = d.amount_in_pair || d.modalKanan || 0;
+                    return `${dexName}: [${modalKiri} | ${modalKanan}]`;
+                }).join(', ') : '-';
+
+                tooltipTitle = `[DIPILIH]\nWithdraw: ${wdStatusText} | Deposit: ${depoStatusText}\nDEX: ${dexsText}\nModal: ${modalsInfo}`;
+            }
+
+            const walletStatusDisplay = `
+                <div style="display:flex; gap:4px; justify-content:center; font-size:11px; font-weight:bold;" title="${tooltipTitle}">
+                    <span style="color:${wdStatusColor};">${wdStatusText}</span>
+                    <span style="color:#ccc;">|</span>
+                    <span style="color:${depoStatusColor};">${depoStatusText}</span>
+                </div>`;
+            // =====================================================
+
             // ========== KOLOM DECIMALS DAN TRADE DIHAPUS ==========
             // Tidak semua CEX memberikan info status trade yang konsisten
             // Decimals bisa dilihat di detail atau form tambah koin
@@ -4552,6 +4621,7 @@ $(document).ready(function() {
                         <span title="${tokenName}${token.__hasDuplicateSC ? ' - Multiple SC Address' : ''}">${duplicateWarning}<strong>${symIn}</strong>${pairsDisplay}</span>
                     </td>
                     <td class="uk-text-small mono" title="${scIn || '-'}"${duplicateStyle}>${scDisplay} [${desInRaw || '-'}]</td>
+                    <td class="uk-text-center">${walletStatusDisplay}</td>
                     <td class="uk-text-right uk-text-small" data-price-cex="${cexUp}" data-symbol="${symIn}" data-index="${baseIndex}">${priceDisplay}</td>
                 </tr>`;
 
