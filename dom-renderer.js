@@ -272,7 +272,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
 
         rowHtml += `
             <td id="${idPrefix}${rowId}" class="uk-text-center uk-background td-detail" style="text-align: center; border:1px solid black; padding:10px;">
-             <span style="color: ${warnaCex}; font-weight:bolder;">[${index + 1}] ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
+             [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
     
             <span class="detail-line">
                 <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;"  >${linkToken} </span> ⇄ <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${linkPair} </span>
@@ -978,7 +978,7 @@ function DisplayPNL(data) {
   const multiLightGreen = 'rgba(188, 233, 97, 1)';
   const hlBg = isMultiModeHL
     ? multiLightGreen
-    : (isDarkMode() ? '#87db0bff' : '#050701');
+    : (isDarkMode() ? '#87db0bff' : '#ddf0b7ff');
   // Tambahkan kelas agar CSS bisa override tambahan saat dark-mode
   if (shouldHighlight) { try { $mainCell.addClass('dex-cell-highlight'); } catch(_) {}
   } else { try { $mainCell.removeClass('dex-cell-highlight'); } catch(_) {} }
@@ -1086,7 +1086,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // Multichain: pakai hijau muda; per‑chain: gunakan tema normal (kuning terang untuk dark, rgba warna chain untuk light)
   const signalBg = isMultiSig
     ? multiLightGreen
-    : (isDarkMode() ? '#a6f039ff' :'#050701');
+    : (isDarkMode() ? '#a6f039ff' :'#ddf0b7ff');
   const highlightStyle = (Number(PNL) > filterPNLValue)
     ? `background-color:${signalBg}; font-weight:bolder;`
     : "";
