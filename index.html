@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MULTISCANNER</title>
+    <title>MULTICHECKER-PLUS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/js/uikit.min.js"></script>
@@ -99,6 +99,10 @@
                 <label>
                     <input class="uk-checkbox posisi-check uk-margin-small-left" type="checkbox" value="ActionKanan" checked>
                     <span >KANAN</span>
+                </label>
+                <label>
+                    <input class="uk-checkbox uk-margin-small-left" id="checkWalletCEX" type="checkbox">
+                    <span class="uk-text-primary">Wallet CEX</span>
                 </label>
 
                 <div class="uk-inline uk-margin-small-left">
@@ -689,7 +693,7 @@
               <th data-sort-key="cex" class="sync-sortable">CEX <span class="sync-sort-indicator"></span></th>
               <th data-sort-key="token" class="sync-sortable">Nama Koin <span class="sync-sort-indicator"></span></th>
               <th data-sort-key="sc" class="sync-sortable">Smart Contract <span class="sync-sort-indicator"></span></th>
-              <th class="uk-text-center" title="Wallet Status: WD (Withdraw) | DP (Deposit)">WD | DP</th>
+              <th data-sort-key="wallet" class="sync-sortable uk-text-center" title="Wallet Status: WD (Withdraw) | DP (Deposit)">WD | DP <span class="sync-sort-indicator"></span></th>
               <th data-sort-key="price" class="sync-sortable">Price <span class="sync-sort-indicator"></span></th>
             </tr>
           </thead>

@@ -265,6 +265,9 @@ $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-bu
         const ok = confirm(`🗑️ Hapus Koin Ini?\n\n${detail}\n\n⚠️ Tindakan ini tidak dapat dibatalkan. Lanjutkan?`);
         if (!ok) return;
 
+        // Cek apakah scanning sedang berjalan
+        const isScanning = (typeof window.isThisTabScanning === 'function' && window.isThisTabScanning()) || false;
+
         const mode = getAppMode();
         if (mode.type === 'single') {
             let list = getTokensChain(mode.chain);
@@ -274,6 +277,18 @@ $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-bu
             if (list.length < before) {
                 try { setLastAction('HAPUS KOIN'); } catch(_) {}
                 if (typeof toast !== 'undefined' && toast.info) toast.info(`PROSES HAPUS KOIN ${symIn} VS ${symOut} BERHASIL`);
+
+                // FIX: Jika sedang scanning, HANYA update total koin tanpa refresh tabel
+                if (isScanning) {
+                    // Update HANYA angka total koin di header manajemen (tanpa re-render tabel)
+                    try { if (typeof updateTokenStatsOnly === 'function') updateTokenStatsOnly(); } catch(_) {}
+                    // Update HANYA angka "TOTAL KOIN" di filter card (tanpa re-render filter)
+                    try { if (typeof updateTotalKoinOnly === 'function') updateTotalKoinOnly(); } catch(_) {}
+                } else {
+                    // Jika TIDAK scanning, update total + refresh tabel
+                    try { if (typeof renderTokenManagementList === 'function') renderTokenManagementList(); } catch(_) {}
+                    try { if (typeof loadAndDisplaySingleChainTokens === 'function') loadAndDisplaySingleChainTokens(); } catch(_) {}
+                }
             }
             try { $el.closest('tr').addClass('row-hidden'); } catch(_) {}
         } else {
@@ -284,6 +299,18 @@ $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-bu
             if (list.length < before) {
                 try { setLastAction('HAPUS KOIN'); } catch(_) {}
                 if (typeof toast !== 'undefined' && toast.info) toast.info(`PROSES HAPUS KOIN ${symIn} VS ${symOut} BERHASIL`);
+
+                // FIX: Jika sedang scanning, HANYA update total koin tanpa refresh tabel
+                if (isScanning) {
+                    // Update HANYA angka total koin di header manajemen (tanpa re-render tabel)
+                    try { if (typeof updateTokenStatsOnly === 'function') updateTokenStatsOnly(); } catch(_) {}
+                    // Update HANYA angka "TOTAL KOIN" di filter card (tanpa re-render filter)
+                    try { if (typeof updateTotalKoinOnly === 'function') updateTotalKoinOnly(); } catch(_) {}
+                } else {
+                    // Jika TIDAK scanning, update total + refresh tabel
+                    try { if (typeof renderTokenManagementList === 'function') renderTokenManagementList(); } catch(_) {}
+                    try { if (typeof refreshTokensTable === 'function') refreshTokensTable(); } catch(_) {}
+                }
             }
             try { $el.closest('tr').addClass('row-hidden'); } catch(_) {}
         }
@@ -768,6 +795,67 @@ async function deferredInit() {
         </label>`;
     }
 
+    /**
+     * Update HANYA angka "TOTAL KOIN" di badge tanpa re-render seluruh filter card.
+     * Digunakan saat delete koin selama scanning untuk menghindari refresh filter.
+     */
+    function updateTotalKoinOnly() {
+        const $badge = $('#total-koin-badge');
+        if (!$badge.length) return; // Badge belum ada
+
+        const m = getMode();
+        let total = 0;
+
+        if (m.mode === 'multi') {
+            const fmNow = getFilterMulti();
+            const chainsSel = fmNow.chains || [];
+            const cexSel = fmNow.cex || [];
+            const dexSel = (fmNow.dex || []).map(x => String(x).toLowerCase());
+            const flat = flattenDataKoin(getTokensMulti()) || [];
+            const saved = getFromLocalStorage('FILTER_MULTICHAIN', null);
+
+            if (!saved) {
+                total = flat.length;
+            } else if (chainsSel.length > 0 && cexSel.length > 0 && dexSel.length > 0) {
+                total = flat.filter(t => chainsSel.includes(String(t.chain || '').toLowerCase()))
+                            .filter(t => cexSel.includes(String(t.cex || '').toUpperCase()))
+                            .filter(t => (t.dexs || []).some(d => dexSel.includes(String(d.dex || '').toLowerCase())))
+                            .length;
+            } else {
+                total = 0;
+            }
+        } else {
+            const chain = m.chain;
+            const saved = getFilterChain(chain);
+            const cexSel = saved.cex || [];
+            const pairSel = saved.pair || [];
+            const dexSel = (saved.dex || []).map(x => String(x).toLowerCase());
+            const flat = flattenDataKoin(getTokensChain(chain)) || [];
+            const pairDefs = (CONFIG_CHAINS[chain] || {}).PAIRDEXS || {};
+
+            if (cexSel.length && pairSel.length && dexSel.length) {
+                total = flat.filter(t => cexSel.includes(String(t.cex || '').toUpperCase()))
+                            .filter(t => {
+                                const p = String(t.symbol_out || '').toUpperCase();
+                                const key = pairDefs[p] ? p : 'NON';
+                                return pairSel.includes(key);
+                            })
+                            .filter(t => (t.dexs || []).some(d => dexSel.includes(String(d.dex || '').toLowerCase())))
+                            .length;
+            } else {
+                total = 0;
+            }
+        }
+
+        // Update HANYA text badge, tidak render ulang filter
+        $badge.text(`TOTAL KOIN: ${total}`);
+    }
+
+    // Expose to window for access from event handlers
+    if (typeof window !== 'undefined') {
+        window.updateTotalKoinOnly = updateTotalKoinOnly;
+    }
+
     function renderFilterCard() {
         const $wrap = $('#filter-groups'); if(!$wrap.length) return; $wrap.empty();
         const m = getMode();
@@ -795,7 +883,7 @@ async function deferredInit() {
             accentColor = cfg?.WARNA || '#333';
         }
         
-        let $sum = $(`<span  class="uk-text-small" style="font-weight:bolder; color: white; background-color: ${accentColor}; padding: 2px 8px; border-radius: 4px;">TOTAL KOIN: 0</span>`);
+        let $sum = $(`<span id="total-koin-badge" class="uk-text-small" style="font-weight:bolder; color: white; background-color: ${accentColor}; padding: 2px 8px; border-radius: 4px;">TOTAL KOIN: 0</span>`);
         if (m.mode === 'multi') {
             const fmNow = getFilterMulti();
             // FIX: Don't default to all chains, respect the user's saved empty selection.
@@ -1794,37 +1882,28 @@ $("#startSCAN").click(function () {
 
         if (m.type === 'single') setTokensChain(m.chain, tokens); else setTokensMulti(tokens);
 
-        // ========== OPTIMIZED DEBOUNCED REFRESH ==========
-        // Use setTimeout to allow UI to update smoothly
-        // Batch all refresh operations together to avoid multiple reflows
+        // ========== TIDAK Auto-Refresh Setelah Simpan ==========
         setTimeout(() => {
             try {
                 if (typeof toast !== 'undefined' && toast.success) {
-                    toast.success(idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan');
+                    const msg = idx !== -1 ? 'Perubahan token berhasil disimpan' : 'Token baru berhasil ditambahkan';
+                    toast.success(msg);
                 }
 
-                // Batch DOM updates using requestAnimationFrame for better performance
-                requestAnimationFrame(() => {
-                    try {
-                        if (m.type === 'single') {
-                            loadAndDisplaySingleChainTokens();
-                        } else {
-                            refreshTokensTable();
-                        }
-                        if (typeof renderFilterCard === 'function') renderFilterCard();
-                        renderTokenManagementList();
-                    } catch(e) {
-                        console.error('[Update Token] Refresh error:', e);
-                    } finally {
-                        // Restore button state
-                        $saveBtn.prop('disabled', false).html(originalBtnHtml);
+                // Restore button state
+                $saveBtn.prop('disabled', false).html(originalBtnHtml);
 
-                        // Hide overlay
-                        if (overlayId && window.AppOverlay) {
-                            window.AppOverlay.hide(overlayId);
-                        }
-                    }
-                });
+                // Hide overlay
+                if (overlayId && window.AppOverlay) {
+                    window.AppOverlay.hide(overlayId);
+                }
+
+                // Token management list tetap di-refresh (tidak mengganggu)
+                try {
+                    renderTokenManagementList();
+                } catch(e) {
+                    console.error('[Update Token] Management list refresh error:', e);
+                }
 
                 try {
                     const action = (idx !== -1) ? 'UBAH KOIN' : 'TAMBAH KOIN';
@@ -4159,6 +4238,16 @@ $(document).ready(function() {
                 if (dep === true && wd === true) return 2;
                 if (dep === false || wd === false) return 0;
                 return 1; // unknown
+            }
+            case 'wallet': {
+                // Sorting berdasarkan status WD (Withdraw) dan DP (Deposit)
+                const dep = parseSnapshotStatus(token.deposit || token.depositEnable);
+                const wd = parseSnapshotStatus(token.withdraw || token.withdrawEnable);
+                // Priority: WD=ON & DP=ON (3) > WD=ON atau DP=ON (2) > Unknown (1) > WD=OFF & DP=OFF (0)
+                if (wd === true && dep === true) return 3;  // Both ON - highest priority
+                if (wd === true || dep === true) return 2;   // One ON - medium priority
+                if (wd === false && dep === false) return 0; // Both OFF - lowest priority
+                return 1; // Unknown status
             }
             case 'price': {
                 const priceVal = Number(token.current_price ?? token.price ?? token.last_price ?? NaN);
