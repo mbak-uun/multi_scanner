@@ -589,6 +589,7 @@ const CONFIG_DEXS = {
         allowFallback: true,
         // Note: Menggunakan Hinkal-ODOS untuk kedua arah agar tidak membebani SWOOP/DZAP
     },
+    /*
     okx: {
         label: 'OKXDEX',
         badgeClass: 'bg-okxdex',
@@ -608,6 +609,7 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,
     },
+    */
     '1inch': {
         label: '1inch',
         badgeClass: 'bg-1inch',
