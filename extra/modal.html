@@ -808,6 +808,24 @@ img:hover {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
 }
+
+/* Chain Colors */
+.text-chain-ethereum { color: #627eea !important; font-weight: bold; }
+.text-chain-bsc { color: #f0b90b !important; font-weight: bold; }
+.text-chain-polygon { color: #9c6bf0 !important; font-weight: bold; }
+.text-chain-base { color: #0052ff !important; font-weight: bold; }
+.text-chain-arbitrum { color: #28a0f0 !important; font-weight: bold; }
+.text-chain-solana { color: #470498 !important; font-weight: bold; }
+.text-chain-avax { color: #e84142 !important; font-weight: bold; }
+
+/* CEX Colors */
+.text-cex-binance { color: #f0b90b !important; font-weight: bold; }
+.text-cex-gate { color: #17e6a1 !important; font-weight: bold; }
+.text-cex-bitget { color: #00f0ff !important; font-weight: bold; }
+.text-cex-kucoin { color: #23af91 !important; font-weight: bold; }
+.text-cex-bybit { color: #f7a600 !important; font-weight: bold; }
+.text-cex-indodax { color: #3d5afe !important; font-weight: bold; }
+.text-cex-mexc { color: #00b897 !important; font-weight: bold; }
 </style>
 <body>
 
@@ -1025,24 +1043,15 @@ img:hover {
                                         </div>
                                         <input class="form-control uk-input uk-form-small" type="text" id="arbitrumWallet" placeholder="Enter Arbitrum Wallet Address">
                                     </div>
-                                    <!-- <div class="input-group mb-2">
-                                        <div class="input-group-prepend">
-                                            <div class="input-group-text">
-                                                <input type="checkbox"  id="AVAX" />&nbsp;
-                                                <label class="form-check-label" for="avaxWallet">AVAX</label>
-                                            </div>
-                                        </div>
-                                        <input class="form-control uk-input uk-form-small" type="text" id="avaxWallet" placeholder="Enter AVAX Wallet Address">
-                                    </div>
-                                    <div class="input-group mb-2">
+                                    <div class="input-group uk-margin-small">
                                         <div class="input-group-prepend">
                                             <div class="input-group-text">
                                                 <input type="checkbox"  id="SOLANA" />&nbsp;
-                                                <label class="form-check-label" for="solanaWallet">SOLANA</label>
+                                                <label class="form-check-label text-chain-solana" for="solanaWallet">SOLANA</label>
                                             </div>
                                         </div>
                                         <input class="form-control uk-input uk-form-small" type="text" id="solanaWallet" placeholder="Enter Solana Wallet Address">
-                                    </div> -->
+                                    </div>
                                     
                                     <div class="uk-flex uk-flex-right uk-margin-small-top">
                                         <button class="uk-button uk-button-small uk-button-secondary" id="SaveWalletChains"><span uk-icon="icon: check"></span> CHECK WALLETS</button>
@@ -1955,8 +1964,8 @@ img:hover {
             bsc: 'https://bsc-dataseed.binance.org/',
            //bsc:'https://binance.llamarpc.com',
             polygon: 'https://polygon-pokt.nodies.app',
-            base:'https://base.llamarpc.com',
-           // base: 'https://mainnet.base.org',
+            // Gunakan RPC resmi Base agar saldo terbaru (hindari data stale dari mirror RPC)
+            base: 'https://mainnet.base.org',
             arbitrum: `https://arbitrum-mainnet.infura.io/v3/${infuraApiKey}`,
             avax: `https://avalanche-mainnet.infura.io/v3/${infuraApiKey}`,
             solana: 'https://api.mainnet-beta.solana.com' 
@@ -2236,6 +2245,11 @@ img:hover {
         $('#SaveWalletChains').on('click', async function () {
             $(this).prop('disabled', true);  // Menonaktifkan tombol selama proses
 
+            // Bersihkan cache saldo chain supaya tampilan selalu memakai hasil fetch terbaru
+            localStorage.removeItem('MULTI_assetDataCEX');
+            localStorage.removeItem('MULTI_TotalSaldoChain');
+            localStorage.removeItem('MULTI_lastUpdateChain');
+
             // Show loading overlay only if not already active
             const isStandaloneCall = !window.BalanceCheckOverlay.isActive;
             if (isStandaloneCall) {
@@ -2376,6 +2390,7 @@ img:hover {
                 }
             } catch (error) {
                 localStorage.setItem('MULTI_TotalSaldoChain', '0');
+                localStorage.removeItem('MULTI_assetDataCEX');
                 $('#output_chain').html(
                     `<tr><td colspan="4">ERROR : ${error.message}</td></tr>`
                 );
@@ -3341,49 +3356,74 @@ img:hover {
                 return { error: error.message }; // Menangani error
             }
         }
-        //fungsi get balances chain SOLANA 
+        //fungsi get balances chain SOLANA
         async function getSolanaBalance(walletAddress, tokenRates) {
             try {
-                const connection = new solanaWeb3.Connection("https://cors-anywhere.herokuapp.com/https://api.mainnet-beta.solana.com");  
+                // Gunakan RPC publik yang lebih reliable
+                const rpcEndpoints = [
+                    'https://api.mainnet-beta.solana.com',
+                    'https://solana-mainnet.g.alchemy.com/v2/demo',
+                    'https://rpc.ankr.com/solana'
+                ];
+
+                let connection = null;
+                let lastError = null;
+
+                // Coba beberapa RPC endpoint
+                for (const rpc of rpcEndpoints) {
+                    try {
+                        connection = new solanaWeb3.Connection(rpc, 'confirmed');
+                        // Test connection dengan simple request
+                        await connection.getLatestBlockhash();
+                        break; // Berhasil connect
+                    } catch (e) {
+                        lastError = e;
+                        connection = null;
+                    }
+                }
+
+                if (!connection) {
+                    throw new Error('Tidak dapat terhubung ke Solana RPC: ' + (lastError?.message || 'Unknown error'));
+                }
+
                 const publicKey = new solanaWeb3.PublicKey(walletAddress);
 
-                // Mendapatkan saldo SOL
+                // Mendapatkan saldo SOL (untuk fee gas)
                 const solBalance = await connection.getBalance(publicKey);
-                const formattedSOL = (solBalance / solanaWeb3.LAMPORTS_PER_SOL).toFixed(4);  // saldo SOL yang diformat
-                const gasBalanceInUSD = ((solBalance / solanaWeb3.LAMPORTS_PER_SOL) * tokenRates.SOL).toFixed(2); // saldo SOL dalam USD
+                const formattedSOL = (solBalance / solanaWeb3.LAMPORTS_PER_SOL).toFixed(4);
+                const solRate = tokenRates.SOL || 0;
+                const gasBalanceInUSD = ((solBalance / solanaWeb3.LAMPORTS_PER_SOL) * solRate).toFixed(2);
 
                 // Mendapatkan akun token USDT dengan alamat mint yang benar
-                const usdtMintPublicKey = new solanaWeb3.PublicKey('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');  // Alamat mint yang benar
+                const usdtMintPublicKey = new solanaWeb3.PublicKey('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
                 const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: usdtMintPublicKey });
 
-                let formattedUSDT = '0';  // Default saldo USDT
+                let formattedUSDT = '0.00';
                 if (tokenAccounts.value.length > 0) {
                     const usdtAccountData = tokenAccounts.value[0]?.account?.data?.parsed;
                     if (usdtAccountData?.info?.tokenAmount?.uiAmount) {
                         const usdtBalance = usdtAccountData.info.tokenAmount.uiAmount;
-                        formattedUSDT = usdtBalance.toFixed(2);  // Format saldo USDT
+                        formattedUSDT = usdtBalance.toFixed(2);
                     }
                 }
 
-                // Menjumlahkan nilai saldo dalam USD (gasBalanceInUSD dan formattedUSDT)
+                // Menjumlahkan nilai saldo dalam USD (gasBalanceInUSD + USDT)
                 const totalBalanceInUSD = (parseFloat(formattedUSDT) + parseFloat(gasBalanceInUSD)).toFixed(2);
 
-                // Mengembalikan objek data terstruktur
                 return {
-                    chain: 'SOLANA',
+                    chain: 'solana',
                     assetBalance: formattedUSDT,
                     assetSymbol: 'USDT',
-                    gasBalance: `${formattedSOL}`,
+                    gasBalance: formattedSOL,
                     gasSymbol: 'SOL',
                     gasBalanceInUSD,
                     totalBalanceInUSD,
                     walletLink: `https://solscan.io/account/${walletAddress}`,
                 };
-                
+
             } catch (error) {
-                console.log("-----------------------");
-                console.log("Error:", error);  // Log error untuk debugging
-                return { error: error.message };  // Mengembalikan objek dengan pesan error
+                console.error("Solana Balance Error:", error);
+                return { error: error.message || 'Unknown Solana error' };
             }
         }
         //fungsi get Price Rate        
